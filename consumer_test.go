@@ -22,7 +22,7 @@ func TestCreateConsumer(t *testing.T) {
 
 	setupHandleFunc(t, mux, "/consumers", "POST", http.StatusCreated, respBody)
 	createResponse, createErr := client.CreateConsumer(username)
-	assert.Nil(t, createErr, "no error")
+	assert.NoError(t, createErr, "no error")
 	assert.NotNil(t, createResponse, "received response")
 	assert.Equal(t, createResponse.Username, username, "username equal")
 	// close server so we can create a new one for the next test
@@ -31,6 +31,6 @@ func TestCreateConsumer(t *testing.T) {
 	client, mux, server = setup()
 	setupHandleFunc(t, mux, "/consumers", "POST", http.StatusOK, respBody)
 	createResponse, createErr = client.CreateConsumer(username)
-	assert.NotNil(t, createErr, "has error")
+	assert.Error(t, createErr, "has error")
 	assert.Nil(t, createResponse, "received no response")
 }
