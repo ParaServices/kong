@@ -20,7 +20,7 @@ type CreateConsumerResponse struct {
 }
 
 // CreateConsumer creates a consumer for the KONG API gateway.
-func (c *Client) CreateConsumer(username string) (*CreateConsumerResponse, error) {
+func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error) {
 	form := url.Values{}
 	form.Add("username", username)
 

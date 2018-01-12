@@ -5,23 +5,19 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
-
-	"github.com/davecgh/go-spew/spew"
 )
 
 // setup sets up a test HTTP server along with a findface.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
-func setup() (*Client, *http.ServeMux, *httptest.Server) {
+func setup() (KongClient, *http.ServeMux, *httptest.Server) {
 	// test server
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
 	u, _ := url.Parse(server.URL)
-	client := &Client{}
-	client.BaseURL = u
-	client.client = &http.Client{}
+	c := NewClient(nil, u)
 
-	return client, mux, server
+	return c, mux, server
 }
 
 // teardown closes the test HTTP server.
@@ -36,7 +32,6 @@ func testMethod(t *testing.T, r *http.Request, want string) {
 }
 
 func setupHandleFunc(t *testing.T, mux *http.ServeMux, path, verb string, statusCode int, respBody []byte) {
-	spew.Dump(path)
 	mux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, verb)
 		w.WriteHeader(statusCode)

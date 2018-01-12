@@ -20,7 +20,7 @@ type CreateJWTCredentialResponse struct {
 }
 
 // CreateJWTCredential ...
-func (c *Client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWTCredentialResponse, error) {
+func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWTCredentialResponse, error) {
 	form := url.Values{}
 	form.Add("key", key)
 	form.Add("secret", secret)
@@ -56,7 +56,7 @@ func (c *Client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWT
 }
 
 // DeleteJWTCredential ...
-func (c *Client) DeleteJWTCredential(consumerID, jwtID string) error {
+func (c *client) DeleteJWTCredential(consumerID, jwtID string) error {
 	c.BaseURL.Path = path.Join(c.BaseURL.Path, "consumers", consumerID, "jwt", jwtID)
 	req, reqErr := http.NewRequest("DELETE", c.BaseURL.String(), nil)
 	if reqErr != nil {

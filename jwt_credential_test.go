@@ -22,13 +22,13 @@ func TestCreateJWTCredential(t *testing.T) {
 		}
 	`)
 
-	client, mux, server := setup()
+	c, mux, server := setup()
 	defer teardown(server)
 
 	p := path.Join("/consumers", consumerID, "jwt")
 
 	setupHandleFunc(t, mux, p, "POST", http.StatusCreated, respBody)
-	createResponse, createErr := client.CreateJWTCredential(consumerID, key, secret)
+	createResponse, createErr := c.CreateJWTCredential(consumerID, key, secret)
 	assert.NoError(t, createErr, "no error")
 	assert.NotNil(t, createResponse, "received response")
 	assert.NotNil(t, createResponse.ID, "received ID from response body")
@@ -38,9 +38,9 @@ func TestCreateJWTCredential(t *testing.T) {
 	// close server so we can create a new one for the next test
 	server.Close()
 
-	client, mux, server = setup()
+	c, mux, server = setup()
 	setupHandleFunc(t, mux, p, "POST", http.StatusOK, respBody)
-	createResponse, createErr = client.CreateJWTCredential(consumerID, key, secret)
+	createResponse, createErr = c.CreateJWTCredential(consumerID, key, secret)
 	assert.Error(t, createErr, "has error")
 	assert.Nil(t, createResponse, "received no response")
 }
@@ -49,19 +49,19 @@ func TestDeleteJWTCredential(t *testing.T) {
 	consumerID := "manbearpig"
 	jwtID := consumerID
 
-	client, mux, server := setup()
+	c, mux, server := setup()
 	defer teardown(server)
 
 	p := path.Join("/consumers", consumerID, "jwt", jwtID)
 
 	setupHandleFunc(t, mux, p, "DELETE", http.StatusNoContent, nil)
-	deleteErr := client.DeleteJWTCredential(consumerID, jwtID)
+	deleteErr := c.DeleteJWTCredential(consumerID, jwtID)
 	assert.NoError(t, deleteErr, "no error")
 	// close server so we can create a new one for the next test
 	server.Close()
 
-	client, mux, server = setup()
+	c, mux, server = setup()
 	setupHandleFunc(t, mux, p, "DELETE", http.StatusOK, nil)
-	deleteErr = client.DeleteJWTCredential(consumerID, jwtID)
+	deleteErr = c.DeleteJWTCredential(consumerID, jwtID)
 	assert.Error(t, deleteErr, "has error")
 }

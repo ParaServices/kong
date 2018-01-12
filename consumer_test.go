@@ -17,20 +17,20 @@ func TestCreateConsumer(t *testing.T) {
 		}
 	`)
 
-	client, mux, server := setup()
+	c, mux, server := setup()
 	defer teardown(server)
 
 	setupHandleFunc(t, mux, "/consumers", "POST", http.StatusCreated, respBody)
-	createResponse, createErr := client.CreateConsumer(username)
+	createResponse, createErr := c.CreateConsumer(username)
 	assert.NoError(t, createErr, "no error")
 	assert.NotNil(t, createResponse, "received response")
 	assert.Equal(t, createResponse.Username, username, "username equal")
 	// close server so we can create a new one for the next test
 	server.Close()
 
-	client, mux, server = setup()
+	c, mux, server = setup()
 	setupHandleFunc(t, mux, "/consumers", "POST", http.StatusOK, respBody)
-	createResponse, createErr = client.CreateConsumer(username)
+	createResponse, createErr = c.CreateConsumer(username)
 	assert.Error(t, createErr, "has error")
 	assert.Nil(t, createResponse, "received no response")
 }
