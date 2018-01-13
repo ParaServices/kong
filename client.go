@@ -6,7 +6,7 @@ import (
 	"net/url"
 )
 
-type KongClient interface {
+type Client interface {
 	CreateConsumer(string) (*CreateConsumerResponse, error)
 	CreateJWTCredential(string, string, string) (*CreateJWTCredentialResponse, error)
 	DeleteJWTCredential(string, string) error
@@ -27,7 +27,7 @@ type client struct {
 	BaseURL *url.URL
 }
 
-func NewClient(hc httpClient, baseURL *url.URL) KongClient {
+func NewClient(hc httpClient, baseURL *url.URL) Client {
 	if hc == nil {
 		hc = &http.Client{}
 	}

@@ -10,7 +10,7 @@ import (
 // setup sets up a test HTTP server along with a findface.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
-func setup() (KongClient, *http.ServeMux, *httptest.Server) {
+func setup() (Client, *http.ServeMux, *httptest.Server) {
 	// test server
 	mux := http.NewServeMux()
 	server := httptest.NewServer(mux)
