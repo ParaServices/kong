@@ -42,6 +42,7 @@ func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWT
 	if doErr != nil {
 		return nil, doErr
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
 		return nil, fmt.Errorf("KONG returned a status not equal to 201, status: %s, url: %s", resp.Status, c.BaseURL.String())
@@ -78,6 +79,7 @@ func (c *client) DeleteJWTCredential(consumerID, jwtID string) error {
 	if doErr != nil {
 		return doErr
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != 204 {
 		return fmt.Errorf("KONG returned a status not equal to 204, status: %s, url: %s", resp.Status, c.BaseURL.String())
