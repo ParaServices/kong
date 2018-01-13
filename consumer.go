@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"path"
 )
 
 // CreateConsumerResponse ...
@@ -24,9 +23,14 @@ func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error
 	form := url.Values{}
 	form.Add("username", username)
 
-	c.BaseURL.Path = path.Join(c.BaseURL.Path, "consumers")
+	rel, err := url.Parse("consumers")
+	if err != nil {
+		return nil, err
+	}
 
-	req, reqErr := http.NewRequest("POST", c.BaseURL.String(), bytes.NewBufferString(form.Encode()))
+	u := c.BaseURL.ResolveReference(rel)
+
+	req, reqErr := http.NewRequest("POST", u.String(), bytes.NewBufferString(form.Encode()))
 	if reqErr != nil {
 		return nil, reqErr
 	}

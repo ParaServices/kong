@@ -25,9 +25,14 @@ func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWT
 	form.Add("key", key)
 	form.Add("secret", secret)
 
-	c.BaseURL.Path = path.Join(c.BaseURL.Path, "consumers", consumerID, "jwt")
+	rel, err := url.Parse(path.Join("consumers", consumerID, "jwt"))
+	if err != nil {
+		return nil, err
+	}
 
-	req, reqErr := http.NewRequest("POST", c.BaseURL.String(), strings.NewReader(form.Encode()))
+	u := c.BaseURL.ResolveReference(rel)
+
+	req, reqErr := http.NewRequest("POST", u.String(), strings.NewReader(form.Encode()))
 	if reqErr != nil {
 		return nil, reqErr
 	}
@@ -57,8 +62,14 @@ func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWT
 
 // DeleteJWTCredential ...
 func (c *client) DeleteJWTCredential(consumerID, jwtID string) error {
-	c.BaseURL.Path = path.Join(c.BaseURL.Path, "consumers", consumerID, "jwt", jwtID)
-	req, reqErr := http.NewRequest("DELETE", c.BaseURL.String(), nil)
+	rel, err := url.Parse(path.Join("consumers", consumerID, "jwt", jwtID))
+	if err != nil {
+		return err
+	}
+
+	u := c.BaseURL.ResolveReference(rel)
+
+	req, reqErr := http.NewRequest("DELETE", u.String(), nil)
 	if reqErr != nil {
 		return reqErr
 	}
