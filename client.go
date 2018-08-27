@@ -10,6 +10,7 @@ type Client interface {
 	CreateConsumer(string) (*CreateConsumerResponse, error)
 	CreateJWTCredential(string, string, string) (*CreateJWTCredentialResponse, error)
 	DeleteJWTCredential(string, string) error
+	GetStatus() (*StatusResponse, error)
 }
 
 type httpClient interface {
