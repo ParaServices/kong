@@ -30,7 +30,7 @@ func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error
 
 	u := c.BaseURL.ResolveReference(rel)
 
-	req, reqErr := http.NewRequest("POST", u.String(), bytes.NewBufferString(form.Encode()))
+	req, reqErr := http.NewRequest("PUT", u.String(), bytes.NewBufferString(form.Encode()))
 	if reqErr != nil {
 		return nil, reqErr
 	}

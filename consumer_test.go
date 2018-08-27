@@ -20,7 +20,7 @@ func TestCreateConsumer(t *testing.T) {
 	c, mux, server := setup()
 	defer teardown(server)
 
-	setupHandleFunc(t, mux, "/consumers", "POST", http.StatusCreated, respBody)
+	setupHandleFunc(t, mux, "/consumers", "PUT", http.StatusCreated, respBody)
 	createResponse, createErr := c.CreateConsumer(username)
 	assert.NoError(t, createErr, "no error")
 	assert.NotNil(t, createResponse, "received response")
@@ -29,7 +29,7 @@ func TestCreateConsumer(t *testing.T) {
 	server.Close()
 
 	c, mux, server = setup()
-	setupHandleFunc(t, mux, "/consumers", "POST", http.StatusOK, respBody)
+	setupHandleFunc(t, mux, "/consumers", "PUT", http.StatusOK, respBody)
 	createResponse, createErr = c.CreateConsumer(username)
 	assert.Error(t, createErr, "has error")
 	assert.Nil(t, createResponse, "received no response")
