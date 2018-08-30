@@ -34,3 +34,13 @@ func TestCreateConsumer(t *testing.T) {
 	assert.Error(t, createErr, "has error")
 	assert.Nil(t, createResponse, "received no response")
 }
+
+func TestDeleteConsumer(t *testing.T) {
+	// Setup
+	username := "manbearpig"
+	c, mux, server := setup()
+	defer teardown(server)
+	setupHandleFunc(t, mux, "/consumers", "DELETE", http.StatusNoContent, nil)
+	err := c.DeleteConsumer(username)
+	assert.NoError(t, err)
+}

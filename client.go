@@ -6,8 +6,11 @@ import (
 	"net/url"
 )
 
+// Client ...
 type Client interface {
 	CreateConsumer(string) (*CreateConsumerResponse, error)
+	// DeleteConsumer Username or ID as string to delete consumer
+	DeleteConsumer(string) error
 	CreateJWTCredential(string, string, string) (*CreateJWTCredentialResponse, error)
 	DeleteJWTCredential(string, string) error
 	GetStatus() (*StatusResponse, error)
@@ -21,13 +24,13 @@ type httpClient interface {
 	PostForm(string, url.Values) (*http.Response, error)
 }
 
-// Client ...
 type client struct {
 	client httpClient
 	// BaseURL ...
 	BaseURL *url.URL
 }
 
+// NewClient ...
 func NewClient(hc httpClient, baseURL *url.URL) Client {
 	if hc == nil {
 		hc = &http.Client{}

@@ -59,3 +59,34 @@ func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error
 
 	return response, nil
 }
+
+// Delete Consumer requires username or ID to delete consumer via Kong API
+// https://docs.konghq.com/0.14.x/admin-api/#delete-consumer
+func (c *client) DeleteConsumer(username string) error {
+	// Create Form Body
+	form := url.Values{}
+	form.Add("username", username)
+	// Build URL
+	rel, err := url.Parse("consumers")
+	if err != nil {
+		return err
+	}
+	u := c.BaseURL.ResolveReference(rel)
+	// Create Request
+	req, err := http.NewRequest("DELETE", u.String(), bytes.NewBufferString(form.Encode()))
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	// Send Request
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	// Check Response
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("KONG returned a status not equal to expected 204 (No Content), status: %s, url: %s", resp.Status, u.String())
+	}
+	return nil
+}
