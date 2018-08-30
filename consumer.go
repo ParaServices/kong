@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"path"
 )
 
 // CreateConsumerResponse ...
@@ -63,17 +64,14 @@ func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error
 // Delete Consumer requires username or ID to delete consumer via Kong API
 // https://docs.konghq.com/0.14.x/admin-api/#delete-consumer
 func (c *client) DeleteConsumer(username string) error {
-	// Create Form Body
-	form := url.Values{}
-	form.Add("username", username)
 	// Build URL
-	rel, err := url.Parse("consumers")
+	rel, err := url.Parse(path.Join("consumers", username))
 	if err != nil {
 		return err
 	}
 	u := c.BaseURL.ResolveReference(rel)
 	// Create Request
-	req, err := http.NewRequest("DELETE", u.String(), bytes.NewBufferString(form.Encode()))
+	req, err := http.NewRequest("DELETE", u.String(), nil)
 	if err != nil {
 		return err
 	}

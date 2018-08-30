@@ -40,7 +40,7 @@ func TestDeleteConsumer(t *testing.T) {
 	username := "manbearpig"
 	c, mux, server := setup()
 	defer teardown(server)
-	setupHandleFunc(t, mux, "/consumers", "DELETE", http.StatusNoContent, nil)
+	setupHandleFunc(t, mux, "/consumers/"+username, "DELETE", http.StatusNoContent, nil)
 	err := c.DeleteConsumer(username)
 	assert.NoError(t, err)
 }
