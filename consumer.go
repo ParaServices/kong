@@ -4,7 +4,6 @@ package kong
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -20,9 +19,10 @@ type CreateConsumerResponse struct {
 }
 
 // CreateConsumer creates a consumer for the KONG API gateway.
-func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error) {
+func (c *client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerResponse, error) {
 	form := url.Values{}
-	form.Add("username", username)
+	form.Add("username", usernameOrCustomID)
+	form.Add("custom_id", usernameOrCustomID)
 
 	rel, err := url.Parse("consumers")
 	if err != nil {
@@ -44,7 +44,7 @@ func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
-		return nil, fmt.Errorf("KONG returned a status not equal to 201, status: %s, url: %s", resp.Status, u.String())
+		return nil, NewErrKongResponse(http.StatusCreated, resp.StatusCode, u.String())
 	}
 
 	b, readErr := ioutil.ReadAll(resp.Body)
@@ -61,11 +61,11 @@ func (c *client) CreateConsumer(username string) (*CreateConsumerResponse, error
 	return response, nil
 }
 
-// Delete Consumer requires username or ID to delete consumer via Kong API
+// Delete Consumer requires usernameOrCustomID or ID to delete consumer via Kong API
 // https://docs.konghq.com/0.14.x/admin-api/#delete-consumer
-func (c *client) DeleteConsumer(username string) error {
+func (c *client) DeleteConsumer(usernameOrCustomID string) error {
 	// Build URL
-	rel, err := url.Parse(path.Join("consumers", username))
+	rel, err := url.Parse(path.Join("consumers", usernameOrCustomID))
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (c *client) DeleteConsumer(username string) error {
 	defer resp.Body.Close()
 	// Check Response
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("KONG returned a status not equal to expected 204 (No Content), status: %s, url: %s", resp.Status, u.String())
+		return NewErrKongResponse(http.StatusCreated, resp.StatusCode, u.String())
 	}
 	return nil
 }
