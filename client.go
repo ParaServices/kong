@@ -1,45 +1,58 @@
 package kong
 
 import (
-	"io"
 	"net/http"
 	"net/url"
+	"time"
 )
 
 // Client ...
 type Client interface {
-	CreateConsumer(string) (*CreateConsumerResponse, error)
+	CreateConsumer(usernameOrCustomID string) (*CreateConsumerResponse, error)
 	// DeleteConsumer Username or ID as string to delete consumer
 	DeleteConsumer(string) error
-	CreateJWTCredential(string, string, string) (*CreateJWTCredentialResponse, error)
-	DeleteJWTCredential(string, string) error
+	CreateJWTCredential(usernameOrCustomID, key, secret string) (*CreateJWTCredentialResponse, error)
+	DeleteJWTCredential(usernameOrCustomID, jwtID string) error
 	GetStatus() (*StatusResponse, error)
 }
 
-type httpClient interface {
-	Do(*http.Request) (*http.Response, error)
-	Get(string) (*http.Response, error)
-	Head(string) (*http.Response, error)
-	Post(string, string, io.Reader) (*http.Response, error)
-	PostForm(string, url.Values) (*http.Response, error)
-}
+const (
+	// DefaultMaxIdleConnections ...
+	DefaultMaxIdleConnections = 10
+	// DefaultRequestTimeout ...
+	DefaultRequestTimeOut = 5
+)
 
 type client struct {
-	client httpClient
+	client *http.Client
 	// BaseURL ...
 	BaseURL *url.URL
 }
 
-// NewClient ...
-func NewClient(hc httpClient, baseURL *url.URL) Client {
-	if hc == nil {
-		hc = &http.Client{}
+// createHTTPClient for connection re-use
+func createHTTPClient(maxIdleConnections, requestTimeOut int) *http.Client {
+	client := &http.Client{
+		Transport: &http.Transport{
+			MaxIdleConnsPerHost: maxIdleConnections,
+		},
+		Timeout: time.Duration(requestTimeOut) * time.Second,
 	}
 
-	c := &client{
-		client:  hc,
+	return client
+}
+
+// NewClient ...
+func NewClient(maxIdleConnections, requestTimeOut int, baseURL *url.URL) Client {
+	if maxIdleConnections == 0 {
+		maxIdleConnections = DefaultMaxIdleConnections
+	}
+
+	if requestTimeOut == 0 {
+		requestTimeOut = DefaultRequestTimeOut
+	}
+
+	return &client{
+		client:  createHTTPClient(maxIdleConnections, requestTimeOut),
 		BaseURL: baseURL,
 	}
-
-	return c
 }

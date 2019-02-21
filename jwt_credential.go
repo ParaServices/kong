@@ -2,7 +2,6 @@ package kong
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -12,20 +11,21 @@ import (
 
 // CreateJWTCredentialResponse ...
 type CreateJWTCredentialResponse struct {
-	ConsumerID string `json:"consumer_id"`
-	CreatedAt  int64  `json:"created_at"`
-	ID         string `json:"id"`
-	Key        string `json:"key"`
-	Secret     string `json:"secret"`
+	Username  string `json:"username"`
+	CustomID  string `json:"consumer_id"`
+	CreatedAt int64  `json:"created_at"`
+	ID        string `json:"id"`
+	Key       string `json:"key"`
+	Secret    string `json:"secret"`
 }
 
 // CreateJWTCredential ...
-func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWTCredentialResponse, error) {
+func (c *client) CreateJWTCredential(usernameOrCustomID, key, secret string) (*CreateJWTCredentialResponse, error) {
 	form := url.Values{}
 	form.Add("key", key)
 	form.Add("secret", secret)
 
-	rel, err := url.Parse(path.Join("consumers", consumerID, "jwt"))
+	rel, err := url.Parse(path.Join("consumers", usernameOrCustomID, "jwt"))
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWT
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 201 {
-		return nil, fmt.Errorf("KONG returned a status not equal to 201, status: %s, url: %s", resp.Status, u.String())
+		return nil, NewErrKongResponse(http.StatusCreated, resp.StatusCode, u.String())
 	}
 
 	b, rErr := ioutil.ReadAll(resp.Body)
@@ -62,8 +62,8 @@ func (c *client) CreateJWTCredential(consumerID, key, secret string) (*CreateJWT
 }
 
 // DeleteJWTCredential ...
-func (c *client) DeleteJWTCredential(consumerID, jwtID string) error {
-	rel, err := url.Parse(path.Join("consumers", consumerID, "jwt", jwtID))
+func (c *client) DeleteJWTCredential(usernameOrCustomID, jwtID string) error {
+	rel, err := url.Parse(path.Join("consumers", usernameOrCustomID, "jwt", jwtID))
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (c *client) DeleteJWTCredential(consumerID, jwtID string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 204 {
-		return fmt.Errorf("KONG returned a status not equal to 204, status: %s, url: %s", resp.Status, u.String())
+		return NewErrKongResponse(http.StatusNoContent, resp.StatusCode, u.String())
 	}
 	return nil
 }

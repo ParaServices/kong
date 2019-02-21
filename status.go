@@ -8,6 +8,7 @@ import (
 	"path"
 )
 
+// StatusResponse ...
 type StatusResponse struct {
 	Server struct {
 		TotalRequests       int `json:"total_requests"`

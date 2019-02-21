@@ -2,45 +2,57 @@ package kong
 
 import (
 	"net/http"
+	"net/url"
+	"sync"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/magicalbanana/tg"
+	"github.com/stretchr/testify/require"
 )
 
-func TestCreateConsumer(t *testing.T) {
-	username := "manbearpig"
-	respBody := []byte(`
-		{
-		  "username": "manbearpig",
-		  "created_at": 1428555626000,
-		  "id": "bbdf1c48-19dc-4ab7-cae0-ff4f59d87dc9"
-		}
-	`)
+func TestClient_CreateConsumer_Success(t *testing.T) {
+	u, err := url.Parse(kongURL())
+	require.NoError(t, err)
+	client := NewClient(1, 1, u)
 
-	c, mux, server := setup()
-	defer teardown(server)
+	usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
+	require.NoError(t, err)
+	resp, err := client.CreateConsumer(usernameOrCustomID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, usernameOrCustomID, resp.CustomID)
 
-	setupHandleFunc(t, mux, "/consumers", "PUT", http.StatusCreated, respBody)
-	createResponse, createErr := c.CreateConsumer(username)
-	assert.NoError(t, createErr, "no error")
-	assert.NotNil(t, createResponse, "received response")
-	assert.Equal(t, createResponse.Username, username, "username equal")
-	// close server so we can create a new one for the next test
-	server.Close()
-
-	c, mux, server = setup()
-	setupHandleFunc(t, mux, "/consumers", "PUT", http.StatusOK, respBody)
-	createResponse, createErr = c.CreateConsumer(username)
-	assert.Error(t, createErr, "has error")
-	assert.Nil(t, createResponse, "received no response")
+	// test concurrent creates
+	wg := sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func(t *testing.T, client Client) {
+			defer wg.Done()
+			usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
+			require.NoError(t, err)
+			resp, err := client.CreateConsumer(usernameOrCustomID)
+			require.NoError(t, err)
+			require.NotNil(t, resp)
+			require.Equal(t, usernameOrCustomID, resp.CustomID)
+		}(t, client)
+	}
+	wg.Wait()
 }
 
-func TestDeleteConsumer(t *testing.T) {
-	// Setup
-	username := "manbearpig"
-	c, mux, server := setup()
-	defer teardown(server)
-	setupHandleFunc(t, mux, "/consumers/"+username, "DELETE", http.StatusNoContent, nil)
-	err := c.DeleteConsumer(username)
-	assert.NoError(t, err)
+func TestClient_CreateConsumer_Fail_UniqueViolation(t *testing.T) {
+	u, err := url.Parse(kongURL())
+	require.NoError(t, err)
+	client := NewClient(1, 1, u)
+
+	usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
+	require.NoError(t, err)
+	resp, err := client.CreateConsumer(usernameOrCustomID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	resp, err = client.CreateConsumer(usernameOrCustomID)
+	require.Error(t, err)
+	errx := err.(Error)
+	require.Equal(t, http.StatusConflict, errx.ResponseCode())
+	require.Nil(t, resp)
 }
