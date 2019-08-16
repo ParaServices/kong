@@ -87,6 +87,8 @@ steps:
 
   - name: test
     image: golang:1.12.5-alpine3.9
+    environment:
+      KONG_URL: http://kong:8001
     volumes:
       - name: deps
         path: /go
