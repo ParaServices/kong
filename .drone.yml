@@ -22,8 +22,8 @@ services:
     detach: true
     environment:
       POSTGRES_DB: kong
-      POSTGRES_USER: paradev
-      POSTGRES_PASSWORD: paradev
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
 
 steps:
   - name: slack-notification-start-test
