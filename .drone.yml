@@ -39,8 +39,16 @@ steps:
         on {{ repo.name }}:{{ build.branch }}>
         by {{ build.author }}
 
+  - name: wait-for-it
+    image: alpine:3.9
+    commands:
+      - apk add --update bash git
+      - test/scripts/wait-for-it.sh -h 'postgres' -p 5432 -t 45
+
   - name: kong-migration
     image: kong:1.2.2-alpine
+    depends_on:
+      - wait-for-it
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
@@ -48,8 +56,6 @@ steps:
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
     commands:
-      - apk add --update bash git
-      - test/scripts/wait-for-it.sh -h 'postgres' -p 5432 -t 45
       - kong migrations bootstrap
 
   - name: kong
