@@ -1,20 +1,45 @@
-workspace:
-  base: /go
-  path: src/github.com/ParaServices/kong
+---
+kind: secret
+name: slack-webhook
 
-git:
-  image: plugins/git
+get:
+  path: drone-kubernetes-secrets-data
+  name: slack-webhook
+---
+kind: pipeline
+name: build-test
+
+clone:
   depth: 50
 
-pipeline:
-  notify_test_start:
-    image: plugins/slack
-    webhook: https://hooks.slack.com/services/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
-    channel: ci
-    username: drone
-    template: "<{{ build.link }}|Build #{{ build.number }} started> <http://github.com/{{ repo.owner }}/{{ repo.name }}/tree/{{ build.branch }}|on {{ repo.name }}:{{ build.branch }}> by {{ build.author }}"
+volumes:
+  - name: deps
+    temp: {}
 
-  postgres:
+services:
+  - name: postgres
+    image: mdillon/postgis:11-alpine
+    detach: true
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_USER: paradev
+      POSTGRES_PASSWORD: paradev
+
+steps:
+  - name: slack-notification-start-test
+    image: plugins/slack
+    settings:
+      webhook:
+        from_secret: slack-webhook
+      channel: ci
+      username: drone
+      template: >
+        <{{ build.link }}|Build #{{ build.number }} started>
+        <http://github.com/{{ repo.owner }}/{{ repo.name }}/tree/{{ build.branch }}|
+        on {{ repo.name }}:{{ build.branch }}>
+        by {{ build.author }}
+
+  - name: postgres
     image: postgres:11.2
     detach: true
     environment:
@@ -22,8 +47,8 @@ pipeline:
       POSTGRES_USER: kong
       POSTGRES_PASSWORD: kong
 
-  kong_migration:
-    image: kong:0.14.1-alpine
+  - name: kong_migration
+    image: kong:1.2.2-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
@@ -33,10 +58,10 @@ pipeline:
     commands:
       - apk add --update bash git
       - test/scripts/wait-for-it.sh -h 'postgres' -p 5432 -t 45
-      - kong migrations up
+      - kong migrations bootstrap
 
-  kong:
-    image: kong:0.14.1-alpine
+  - name: kong
+    image: kong:1.2.2-alpine
     detach: true
     environment:
       KONG_DATABASE: postgres
@@ -44,6 +69,10 @@ pipeline:
       KONG_PG_DATABASE: kong
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
     ports:
       - 8000:8000
@@ -51,27 +80,42 @@ pipeline:
       - 8443:8443
       - 8444:8444
 
-  build:
-    image: golang:1.11-stretch
-    group: build_test
+  - name: build-modules
+    image: golang:1.12.5-alpine3.9
+    volumes:
+      - name: deps
+        path: /go
     commands:
+      - apk add --update --no-cache git
       - go build -v ./...
+      - go mod vendor
 
-  test:
-    image: golang:1.11-alpine3.8
-    group: build_test
-    environment:
-      KONG_URL: http://kong:8001
+  - name: test
+    image: golang:1.12.5-alpine3.9
+    volumes:
+      - name: deps
+        path: /go
+    depends_on:
+      - build-modules
     commands:
-      - apk add --update --no-cache bash alpine-sdk
-      - test/scripts/wait-for-it.sh -h 'kong' -p 8001 -t 45
+      - apk add --update --no-cache alpine-sdk bash
       - go test -v ./...
 
-  notify_test_finish:
+  - name: slack-notification-finish-test
     image: plugins/slack
-    webhook: https://hooks.slack.com/services/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
-    channel: ci
-    username: drone
-    template: "<{{ build.link }}|Build #{{ build.number }} {{ build.status }}> on <http://github.com/{{ repo.owner }}/{{ repo.name }}/tree/{{ build.branch }}|{{ repo.name }}:{{ build.branch }}> by @{{ build.author }}"
+    settings:
+      webhook:
+        from_secret: slack-webhook
+      channel: ci
+      username: drone
+      template: >
+        <{{ build.link }}|Build #{{ build.number }} {{ build.status }}>
+        on <http://github.com/{{ repo.owner }}/{{ repo.name }}/tree/{{ build.branch }}|
+        {{ repo.name }}:{{ build.branch }}> by @{{ build.author }}
+    depends_on:
+      - test
     when:
-      status: [success, failure]
+      status:
+        - success
+        - failure
+

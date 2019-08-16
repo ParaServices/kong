@@ -11,12 +11,14 @@ import (
 
 // CreateJWTCredentialResponse ...
 type CreateJWTCredentialResponse struct {
-	Username  string `json:"username"`
-	CustomID  string `json:"consumer_id"`
-	CreatedAt int64  `json:"created_at"`
-	ID        string `json:"id"`
-	Key       string `json:"key"`
-	Secret    string `json:"secret"`
+	ID       string `json:"id,omitempty"`
+	Consumer struct {
+		ID string `json:"id,omitempty"`
+	} `json:"consumer,omitempty"`
+	Algorithm string `json:"algorithm,omitempty"`
+	Key       string `json:"key,omitempty"`
+	Secret    string `json:"secret,omitempty"`
+	CreatedAt int64  `json:"created_at,omitempty"`
 }
 
 // CreateJWTCredential ...
@@ -53,6 +55,7 @@ func (c *client) CreateJWTCredential(usernameOrCustomID, key, secret string) (*C
 		return nil, rErr
 	}
 	defer resp.Body.Close()
+
 	response := &CreateJWTCredentialResponse{}
 	mErr := json.Unmarshal(b, &response)
 	if mErr != nil {

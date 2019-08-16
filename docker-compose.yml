@@ -1,4 +1,4 @@
-version: '3.6'
+version: '3.7'
 
 services:
   postgres:
@@ -11,23 +11,27 @@ services:
       - postgres:/var/lib/postgresql/data
 
   kong-migration:
-    image: kong:0.14.1-alpine
+    image: kong:1.2.2-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
       KONG_PG_DATABASE: kong
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
-    command: kong migrations up
+    command: kong migrations bootstrap
 
   kong:
-    image: kong:0.14.1-alpine
+    image: kong:1.2.2-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
       KONG_PG_DATABASE: kong
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
     ports:
       - 8000:8000

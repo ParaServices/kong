@@ -12,10 +12,10 @@ import (
 
 // CreateConsumerResponse ...
 type CreateConsumerResponse struct {
-	ID        string `json:"id"`
+	ID        string `json:"id,omitempty"`
 	Username  string `json:"username,omitempty"`
 	CustomID  string `json:"custom_id,omitempty"`
-	CreatedAt int64  `json:"created_at"`
+	CreatedAt int64  `json:"created_at,omitempty"`
 }
 
 // CreateConsumer creates a consumer for the KONG API gateway.
