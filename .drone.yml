@@ -18,7 +18,7 @@ volumes:
 
 services:
   - name: postgres
-    image: mdillon/postgis:11-alpine
+    image: postgres:11.2
     detach: true
     environment:
       POSTGRES_DB: kong
@@ -38,14 +38,6 @@ steps:
         <http://github.com/{{ repo.owner }}/{{ repo.name }}/tree/{{ build.branch }}|
         on {{ repo.name }}:{{ build.branch }}>
         by {{ build.author }}
-
-  - name: postgres
-    image: postgres:11.2
-    detach: true
-    environment:
-      POSTGRES_DB: kong
-      POSTGRES_USER: kong
-      POSTGRES_PASSWORD: kong
 
   - name: kong_migration
     image: kong:1.2.2-alpine
