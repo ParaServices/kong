@@ -39,7 +39,7 @@ steps:
         on {{ repo.name }}:{{ build.branch }}>
         by {{ build.author }}
 
-  - name: kong_migration
+  - name: kong-migration
     image: kong:1.2.2-alpine
     environment:
       KONG_DATABASE: postgres
@@ -54,6 +54,8 @@ steps:
 
   - name: kong
     image: kong:1.2.2-alpine
+    depends_on:
+      - kong-migration
     detach: true
     environment:
       KONG_DATABASE: postgres
