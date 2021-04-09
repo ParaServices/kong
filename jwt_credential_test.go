@@ -2,7 +2,6 @@ package kong
 
 import (
 	"net/http"
-	"net/url"
 	"testing"
 
 	"github.com/magicalbanana/tg"
@@ -10,11 +9,8 @@ import (
 )
 
 func TestClient_CreateJWTCredential(t *testing.T) {
-	u, err := url.Parse(kongURL())
-	require.NoError(t, err)
-
 	t.Run("create success", func(t *testing.T) {
-		client := NewClient(1, 1, u)
+		client := NewClient(1, 1, kongURL(t))
 
 		usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
@@ -35,9 +31,11 @@ func TestClient_CreateJWTCredential(t *testing.T) {
 		require.Equal(t, r.ID, resp.Consumer.ID)
 		require.NotEmpty(t, resp.ID)
 	})
+}
 
+func TestClient_CreateJWTCredential_CustomerDoesNotExist(t *testing.T) {
 	t.Run("consumer does not exist", func(t *testing.T) {
-		client := NewClient(1, 1, u)
+		client := NewClient(1, 1, kongURL(t))
 
 		usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
@@ -49,18 +47,15 @@ func TestClient_CreateJWTCredential(t *testing.T) {
 
 		resp, err := client.CreateJWTCredential(usernameOrCustomID, key, secret)
 		require.Error(t, err)
-		errx := err.(Error)
+		errx := err.(KongError)
 		require.Equal(t, http.StatusNotFound, errx.ResponseCode())
 		require.Nil(t, resp)
 	})
 }
 
 func TestClient_DeleteJWTCredential(t *testing.T) {
-	u, err := url.Parse(kongURL())
-	require.NoError(t, err)
-
 	t.Run("delete success", func(t *testing.T) {
-		client := NewClient(1, 1, u)
+		client := NewClient(1, 1, kongURL(t))
 
 		usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)

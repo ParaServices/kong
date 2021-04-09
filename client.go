@@ -4,17 +4,9 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-)
 
-// Client ...
-type Client interface {
-	CreateConsumer(usernameOrCustomID string) (*CreateConsumerResponse, error)
-	// DeleteConsumer Username or ID as string to delete consumer
-	DeleteConsumer(string) error
-	CreateJWTCredential(usernameOrCustomID, key, secret string) (*CreateJWTCredentialResponse, error)
-	DeleteJWTCredential(usernameOrCustomID, jwtID string) error
-	GetStatus() (*StatusResponse, error)
-}
+	"github.com/ParaServices/kong/version"
+)
 
 const (
 	// DefaultMaxIdleConnections ...
@@ -23,10 +15,17 @@ const (
 	DefaultRequestTimeOut = 5
 )
 
-type client struct {
+type Client struct {
 	client *http.Client
 	// BaseURL ...
 	BaseURL *url.URL
+}
+
+// this must be used in favor of client.Do because this will append headers
+// internal to thsi package
+func (c *Client) doRequest(req *http.Request) (*http.Response, error) {
+	req.Header.Add("User-Agent", version.UserAgent())
+	return c.client.Do(req)
 }
 
 // createHTTPClient for connection re-use
@@ -42,7 +41,7 @@ func createHTTPClient(maxIdleConnections, requestTimeOut int) *http.Client {
 }
 
 // NewClient ...
-func NewClient(maxIdleConnections, requestTimeOut int, baseURL *url.URL) Client {
+func NewClient(maxIdleConnections, requestTimeOut int, baseURL *url.URL) *Client {
 	if maxIdleConnections == 0 {
 		maxIdleConnections = DefaultMaxIdleConnections
 	}
@@ -51,7 +50,7 @@ func NewClient(maxIdleConnections, requestTimeOut int, baseURL *url.URL) Client 
 		requestTimeOut = DefaultRequestTimeOut
 	}
 
-	return &client{
+	return &Client{
 		client:  createHTTPClient(maxIdleConnections, requestTimeOut),
 		BaseURL: baseURL,
 	}

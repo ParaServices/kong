@@ -6,7 +6,22 @@ get:
   path: drone-kubernetes-secrets-data
   name: slack-webhook
 ---
+kind: secret
+name: gcr-creds-container-builder-private-key
+
+get:
+  path: drone-kubernetes-secrets-data
+  name: gcr-creds-container-builder-private-key
+---
+kind: secret
+name: codecov-kong
+
+get:
+  path: drone-kubernetes-secrets-data
+  name: codecov-kong
+---
 kind: pipeline
+type: kubernetes
 name: build-test
 
 clone:
@@ -18,8 +33,7 @@ volumes:
 
 services:
   - name: postgres
-    image: postgres:11.2
-    detach: true
+    image: postgres:13-alpine
     environment:
       POSTGRES_DB: kong
       POSTGRES_USER: kong
@@ -40,13 +54,13 @@ steps:
         by {{ build.author }}
 
   - name: wait-for-it
-    image: alpine:3.9
+    image: us.gcr.io/para-devops/wait-for-it:master
+    pull: always
     commands:
-      - apk add --update bash git
-      - test/scripts/wait-for-it.sh -h 'postgres' -p 5432 -t 45
+      - wait-for-it.sh -h 'localhost' -p 5432 -t 180
 
-  - name: kong-migration
-    image: kong:1.2.2-alpine
+  - name: kong-migrations
+    image: kong:2.3.3-alpine
     depends_on:
       - wait-for-it
     environment:
@@ -55,14 +69,19 @@ steps:
       KONG_PG_DATABASE: kong
       KONG_PG_USER: kong
       KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
     commands:
       - kong migrations bootstrap
 
   - name: kong
-    image: kong:1.2.2-alpine
-    depends_on:
-      - kong-migration
+    image: kong:2.3.3-alpine
     detach: true
+    depends_on:
+      - kong-migrations
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
@@ -76,7 +95,10 @@ steps:
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
 
   - name: build-modules
-    image: golang:1.12.5-alpine3.9
+    image: us.gcr.io/para-devops/gotest:latest
+    pull: always
+    depends_on:
+      - kong
     volumes:
       - name: deps
         path: /go
@@ -85,18 +107,51 @@ steps:
       - go build -v ./...
       - go mod vendor
 
+  - name: wait-for-it-kong
+    image: us.gcr.io/para-devops/wait-for-it:master
+    pull: always
+    commands:
+      - wait-for-it.sh -h '0.0.0.0' -p 8001 -t 120
+
   - name: test
-    image: golang:1.12.5-alpine3.9
+    image: us.gcr.io/para-devops/gotest:latest
+    pull: always
+    depends_on:
+      - build-modules
+      - wait-for-it-kong
     environment:
-      KONG_URL: http://kong:8001
+      KONG_URL: http://0.0.0.0:8001/
     volumes:
       - name: deps
         path: /go
+
+  - name: codecov
+    image: plugins/codecov
     depends_on:
-      - build-modules
+      - test
+    volumes:
+      - name: deps
+        path: /go
+    settings:
+      required: true
+      paths:
+        # see testcov.sh $workdir
+        - .cover
+      token:
+        from_secret: codecov-kong
+
+  - name: inject-version
+    image: us.gcr.io/para-devops/devops-tools:master
     commands:
-      - apk add --update --no-cache alpine-sdk bash
-      - go test -v ./...
+      - find version -name "*.go" | xargs -0 inject-revision.sh --git-tag=$DRONE_TAG --git-branch=$DRONE_BRANCH --files
+    when:
+      ref:
+        - refs/heads/master
+        - refs/tags/*
+      event:
+        - push
+        - tag
+        - deployment
 
   - name: slack-notification-finish-test
     image: plugins/slack
@@ -110,9 +165,8 @@ steps:
         on <http://github.com/{{ repo.owner }}/{{ repo.name }}/tree/{{ build.branch }}|
         {{ repo.name }}:{{ build.branch }}> by @{{ build.author }}
     depends_on:
-      - test
+      - codecov
     when:
       status:
         - success
         - failure
-

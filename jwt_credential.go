@@ -9,20 +9,24 @@ import (
 	"strings"
 )
 
+type JWTCredential struct {
+	ID           string    `json:"id,omtiempty"`
+	Consumer     *Consumer `json:"consumer,omitempty"`
+	CreatedAt    int64     `json:"created_at,omitempty"`
+	Key          string    `json:"key,omitemtpy"`
+	Secret       string    `json:"secret,omptempty"`
+	RSAPublicKey string    `json:"rsa_public_key,omitempty"`
+	Algorithm    string    `json:"algorithm,omitempty"`
+	Tags
+}
+
 // CreateJWTCredentialResponse ...
 type CreateJWTCredentialResponse struct {
-	ID       string `json:"id,omitempty"`
-	Consumer struct {
-		ID string `json:"id,omitempty"`
-	} `json:"consumer,omitempty"`
-	Algorithm string `json:"algorithm,omitempty"`
-	Key       string `json:"key,omitempty"`
-	Secret    string `json:"secret,omitempty"`
-	CreatedAt int64  `json:"created_at,omitempty"`
+	*JWTCredential
 }
 
 // CreateJWTCredential ...
-func (c *client) CreateJWTCredential(usernameOrCustomID, key, secret string) (*CreateJWTCredentialResponse, error) {
+func (c *Client) CreateJWTCredential(usernameOrCustomID, key, secret string) (*CreateJWTCredentialResponse, error) {
 	form := url.Values{}
 	form.Add("key", key)
 	form.Add("secret", secret)
@@ -40,21 +44,21 @@ func (c *client) CreateJWTCredential(usernameOrCustomID, key, secret string) (*C
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, doErr := c.client.Do(req)
+	resp, doErr := c.doRequest(req)
 	if doErr != nil {
 		return nil, doErr
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 201 {
-		return nil, NewErrKongResponse(http.StatusCreated, resp.StatusCode, u.String())
+	expCodes := expectedCodes{http.StatusCreated}
+	if !expCodes.codeMatched(resp.StatusCode) {
+		return nil, NewErrKongResponse(expCodes, resp)
 	}
 
 	b, rErr := ioutil.ReadAll(resp.Body)
 	if rErr != nil {
 		return nil, rErr
 	}
-	defer resp.Body.Close()
 
 	response := &CreateJWTCredentialResponse{}
 	mErr := json.Unmarshal(b, &response)
@@ -65,7 +69,7 @@ func (c *client) CreateJWTCredential(usernameOrCustomID, key, secret string) (*C
 }
 
 // DeleteJWTCredential ...
-func (c *client) DeleteJWTCredential(usernameOrCustomID, jwtID string) error {
+func (c *Client) DeleteJWTCredential(usernameOrCustomID, jwtID string) error {
 	rel, err := url.Parse(path.Join("consumers", usernameOrCustomID, "jwt", jwtID))
 	if err != nil {
 		return err
@@ -78,14 +82,16 @@ func (c *client) DeleteJWTCredential(usernameOrCustomID, jwtID string) error {
 		return reqErr
 	}
 
-	resp, doErr := c.client.Do(req)
+	resp, doErr := c.doRequest(req)
 	if doErr != nil {
 		return doErr
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 204 {
-		return NewErrKongResponse(http.StatusNoContent, resp.StatusCode, u.String())
+	expCodes := expectedCodes{http.StatusNoContent}
+	if !expCodes.codeMatched(resp.StatusCode) {
+		return NewErrKongResponse(expCodes, resp)
 	}
+
 	return nil
 }
