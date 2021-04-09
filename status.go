@@ -24,7 +24,7 @@ type StatusResponse struct {
 	} `json:"database"`
 }
 
-func (c *client) GetStatus() (*StatusResponse, error) {
+func (c *Client) GetStatus() (*StatusResponse, error) {
 	// Build URL
 	relURL, err := url.Parse(path.Join("status"))
 	if err != nil {
@@ -37,7 +37,7 @@ func (c *client) GetStatus() (*StatusResponse, error) {
 		return nil, err
 	}
 	// Send Request
-	resp, err := c.client.Do(req)
+	resp, err := c.doRequest(req)
 	if err != nil {
 		return nil, err
 	}

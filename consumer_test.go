@@ -2,7 +2,6 @@ package kong
 
 import (
 	"net/http"
-	"net/url"
 	"sync"
 	"testing"
 
@@ -11,11 +10,8 @@ import (
 )
 
 func TestClient_CreateConsumer(t *testing.T) {
-	u, err := url.Parse(kongURL())
-	require.NoError(t, err)
-
 	t.Run("create success", func(t *testing.T) {
-		client := NewClient(1, 1, u)
+		client := NewClient(1, 1, kongURL(t))
 
 		usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
@@ -28,7 +24,7 @@ func TestClient_CreateConsumer(t *testing.T) {
 		wg := sync.WaitGroup{}
 		for i := 0; i < 10; i++ {
 			wg.Add(1)
-			go func(t *testing.T, client Client) {
+			go func(t *testing.T, client *Client) {
 				defer wg.Done()
 				usernameOrCustomID, err := tg.RandGen(20, tg.Digit, "", "")
 				require.NoError(t, err)
@@ -42,7 +38,7 @@ func TestClient_CreateConsumer(t *testing.T) {
 	})
 
 	t.Run("unique violation", func(t *testing.T) {
-		client := NewClient(1, 1, u)
+		client := NewClient(1, 1, kongURL(t))
 
 		usernameOrCustomID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
@@ -52,7 +48,7 @@ func TestClient_CreateConsumer(t *testing.T) {
 
 		resp, err = client.CreateConsumer(usernameOrCustomID)
 		require.Error(t, err)
-		errx := err.(Error)
+		errx := err.(KongError)
 		require.Equal(t, http.StatusConflict, errx.ResponseCode())
 		require.Nil(t, resp)
 	})

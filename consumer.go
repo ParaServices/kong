@@ -10,16 +10,22 @@ import (
 	"path"
 )
 
-// CreateConsumerResponse ...
-type CreateConsumerResponse struct {
+// Consumer ...
+type Consumer struct {
 	ID        string `json:"id,omitempty"`
 	Username  string `json:"username,omitempty"`
 	CustomID  string `json:"custom_id,omitempty"`
 	CreatedAt int64  `json:"created_at,omitempty"`
+	Tags
+}
+
+// CreateConsumerResponse ...
+type CreateConsumerResponse struct {
+	*Consumer
 }
 
 // CreateConsumer creates a consumer for the KONG API gateway.
-func (c *client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerResponse, error) {
+func (c *Client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerResponse, error) {
 	form := url.Values{}
 	form.Add("username", usernameOrCustomID)
 	form.Add("custom_id", usernameOrCustomID)
@@ -37,14 +43,15 @@ func (c *client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerRespo
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, doErr := c.client.Do(req)
+	resp, doErr := c.doRequest(req)
 	if doErr != nil {
 		return nil, doErr
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 201 {
-		return nil, NewErrKongResponse(http.StatusCreated, resp.StatusCode, u.String())
+	expCodes := expectedCodes{http.StatusCreated}
+	if !expCodes.codeMatched(resp.StatusCode) {
+		return nil, NewErrKongResponse(expCodes, resp)
 	}
 
 	b, readErr := ioutil.ReadAll(resp.Body)
@@ -63,7 +70,7 @@ func (c *client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerRespo
 
 // Delete Consumer requires usernameOrCustomID or ID to delete consumer via Kong API
 // https://docs.konghq.com/0.14.x/admin-api/#delete-consumer
-func (c *client) DeleteConsumer(usernameOrCustomID string) error {
+func (c *Client) DeleteConsumer(usernameOrCustomID string) error {
 	// Build URL
 	rel, err := url.Parse(path.Join("consumers", usernameOrCustomID))
 	if err != nil {
@@ -77,14 +84,15 @@ func (c *client) DeleteConsumer(usernameOrCustomID string) error {
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	// Send Request
-	resp, err := c.client.Do(req)
+	resp, err := c.doRequest(req)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
-	// Check Response
-	if resp.StatusCode != http.StatusNoContent {
-		return NewErrKongResponse(http.StatusCreated, resp.StatusCode, u.String())
+
+	expCodes := expectedCodes{http.StatusNoContent}
+	if !expCodes.codeMatched(resp.StatusCode) {
+		return NewErrKongResponse(expCodes, resp)
 	}
 	return nil
 }

@@ -1,8 +1,8 @@
-version: '3.7'
+version: '3.9'
 
 services:
   postgres:
-    image: postgres:11.2
+    image: postgres:13
     environment:
       POSTGRES_DB: kong
       POSTGRES_USER: kong
@@ -11,7 +11,7 @@ services:
       - postgres:/var/lib/postgresql/data
 
   kong-migration:
-    image: kong:1.2.2-alpine
+    image: kong:2.3.3-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
@@ -21,7 +21,7 @@ services:
     command: kong migrations bootstrap
 
   kong:
-    image: kong:1.2.2-alpine
+    image: kong:2.3.3-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres

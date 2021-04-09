@@ -1,6 +1,13 @@
+[codecov]: https://codecov.io/gh/ParaServices/kong
+[codecov badge master]: https://codecov.io/gh/ParaServices/kong/branch/master/graph/badge.svg
+[drone repo]: https://drone.joinpara.app/ParaServices/kong
+[drone badge master]: https://drone.joinpara.app/api/badges/ParaServices/kong/status.svg?ref=refs/heads/master
+
+| master                                          |
+| -                                               |
+| [![drone repo][drone badge master]][drone repo] |
+| [![codecov][codecov badge master]][codecov]     |
+
 # Kong
 
-[![GoDoc](https://godoc.org/github.com/ParaServices/kong?status.svg)](https://godoc.org/github.com/ParaServices/kong)
-[![Go Report Card](https://goreportcard.com/badge/github.com/ParaServices/kong)](https://goreportcard.com/report/github.com/ParaServices/kong)
-
-This package is a client for interacting with the Kong Admin API.
+Is a package that integrates with Kong's Admin API.
