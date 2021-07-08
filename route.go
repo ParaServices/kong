@@ -7,51 +7,34 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/ParaServices/errgo"
+	"github.com/ParaServices/kong/object"
 )
 
-// Route ...
-type Route struct {
-	Service       *Service `json:"service,omitempty"`
-	ID            string   `json:"id,omitempty"`
-	Protocols     []string `json:"protocols,omitempty"`
-	Paths         []string `json:"paths,omitempty"`
-	Methods       []string `json:"methods,omitempty"`
-	Hosts         []string `json:"hosts,omitempty"`
-	PreserveHost  bool     `json:"preserve_host,omitempty"`
-	StripPath     bool     `json:"strip_path,omtiempty"`
-	RegexPriority int      `json:"regex_priority,omitempty"`
-	CreatedAt     int64    `json:"created_at,omitempty"`
-	UpdatedAt     int64    `json:"updated_at,omitempty"`
-}
-
-// RoutesList ...
-type RoutesList struct {
-	Data []Route `json:"data,omitempty"`
-}
-
 // AddRoute ...
-func (c *Client) AddRoute(route *Route) (*Route, error) {
+func (c *Client) AddRoute(getter object.RouteGetter) (*object.Route, error) {
 	rel, err := url.Parse("routes")
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
-	b, err := json.Marshal(route)
+	b, err := json.Marshal(getter)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(b))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	expCodes := expectedCodes{http.StatusCreated}
@@ -62,35 +45,35 @@ func (c *Client) AddRoute(route *Route) (*Route, error) {
 
 	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	response := &Route{}
+	response := &object.Route{}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	return response, nil
 }
 
 // ListRoutesForService ...
-func (c *Client) ListRoutesForService(serviceNameorID string) (*RoutesList, error) {
-	rel, err := url.Parse(path.Join("services", serviceNameorID, "routes"))
+func (c *Client) ListRoutesForService(getter object.KongIDGetter) (object.Routes, error) {
+	rel, err := url.Parse(path.Join("services", getter.GetID(), "routes"))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	expCodes := expectedCodes{http.StatusOK}
 	if !expCodes.codeMatched(resp.StatusCode) {
@@ -101,25 +84,32 @@ func (c *Client) ListRoutesForService(serviceNameorID string) (*RoutesList, erro
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
-	}
-	response := &RoutesList{}
-	err = json.Unmarshal(b, &response)
-	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	return response, nil
+	response := &struct {
+		Data object.Routes `json:"data,omitempty"`
+	}{}
+	err = json.Unmarshal(b, &response)
+	if err != nil {
+		return nil, errgo.New(err)
+	}
+
+	if response.Data.GetLength() < 1 {
+		return nil, nil
+	}
+
+	return response.Data, nil
 }
 
 // DeleteRoute ...
-func (c *Client) DeleteRoute(routeID string) error {
-	rel, err := url.Parse(path.Join("routes", routeID))
+func (c *Client) DeleteRoute(getter object.KongIDGetter) error {
+	rel, err := url.Parse(path.Join("routes", getter.GetID()))
 	if err != nil {
 		return err
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
 	req, err := http.NewRequest(http.MethodDelete, u.String(), nil)
 	if err != nil {

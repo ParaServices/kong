@@ -7,7 +7,8 @@ import (
 )
 
 func TestGetStatus(t *testing.T) {
-	client := NewClient(1, 1, kongURL(t))
+	client, err := NewClient(kongURL(t))
+	require.NoError(t, err)
 	statusResp, err := client.GetStatus()
 	require.NoError(t, err, "Get Status Should Not Return Error")
 	require.NotNil(t, statusResp, "Status Response should not be nil")

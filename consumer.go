@@ -1,4 +1,3 @@
-// Package kong ...
 package kong
 
 import (
@@ -8,44 +7,42 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/ParaServices/errgo"
+	"github.com/ParaServices/kong/object"
+	"github.com/ParaServices/paratils"
 )
 
-// Consumer ...
-type Consumer struct {
-	ID        string `json:"id,omitempty"`
-	Username  string `json:"username,omitempty"`
-	CustomID  string `json:"custom_id,omitempty"`
-	CreatedAt int64  `json:"created_at,omitempty"`
-	Tags
-}
-
-// CreateConsumerResponse ...
-type CreateConsumerResponse struct {
-	*Consumer
-}
-
 // CreateConsumer creates a consumer for the KONG API gateway.
-func (c *Client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerResponse, error) {
+func (c *Client) CreateConsumer(getter object.ConsumerGetter) (*object.Consumer, error) {
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("consumer is nil")
+	}
+	customID := getter.GetCustomID()
+	username := getter.GetUsername()
+	if paratils.StringIsEmpty(customID) && paratils.StringIsEmpty(username) {
+		return nil, errgo.NewF("custom ID and username is empty")
+	}
 	form := url.Values{}
-	form.Add("username", usernameOrCustomID)
-	form.Add("custom_id", usernameOrCustomID)
+	form.Add("custom_id", customID)
+	form.Add("username", username)
 
 	rel, err := url.Parse("consumers")
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
-	req, reqErr := http.NewRequest("POST", u.String(), bytes.NewBufferString(form.Encode()))
-	if reqErr != nil {
-		return nil, reqErr
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBufferString(form.Encode()))
+	if err != nil {
+		return nil, errgo.New(err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, doErr := c.doRequest(req)
-	if doErr != nil {
-		return nil, doErr
+	resp, err := c.doRequest(req)
+	if err != nil {
+		return nil, errgo.New(err)
 	}
 	defer resp.Body.Close()
 
@@ -54,39 +51,37 @@ func (c *Client) CreateConsumer(usernameOrCustomID string) (*CreateConsumerRespo
 		return nil, NewErrKongResponse(expCodes, resp)
 	}
 
-	b, readErr := ioutil.ReadAll(resp.Body)
-	if readErr != nil {
-		return nil, readErr
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errgo.New(err)
 	}
 
-	response := &CreateConsumerResponse{}
-	unMarshalErr := json.Unmarshal(b, &response)
-	if unMarshalErr != nil {
-		return nil, unMarshalErr
+	consumer := &object.Consumer{}
+	err = json.Unmarshal(b, &consumer)
+	if err != nil {
+		return nil, errgo.New(err)
 	}
 
-	return response, nil
+	return consumer, nil
 }
 
 // Delete Consumer requires usernameOrCustomID or ID to delete consumer via Kong API
 // https://docs.konghq.com/0.14.x/admin-api/#delete-consumer
-func (c *Client) DeleteConsumer(usernameOrCustomID string) error {
-	// Build URL
-	rel, err := url.Parse(path.Join("consumers", usernameOrCustomID))
+func (c *Client) DeleteConsumer(getter object.ConsumerGetter) error {
+	rel, err := url.Parse(path.Join("consumers", getter.GetCustomID()))
 	if err != nil {
-		return err
+		return errgo.New(err)
 	}
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 	// Create Request
-	req, err := http.NewRequest("DELETE", u.String(), nil)
+	req, err := http.NewRequest(http.MethodDelete, u.String(), nil)
 	if err != nil {
-		return err
+		return errgo.New(err)
 	}
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	// Send Request
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return err
+		return errgo.New(err)
 	}
 	defer resp.Body.Close()
 

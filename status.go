@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/ParaServices/errgo"
 )
 
 // StatusResponse ...
@@ -28,29 +30,29 @@ func (c *Client) GetStatus() (*StatusResponse, error) {
 	// Build URL
 	relURL, err := url.Parse(path.Join("status"))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
-	url := c.BaseURL.ResolveReference(relURL)
+	url := c.baseURL.ResolveReference(relURL)
 	// Create Request
-	req, err := http.NewRequest("GET", url.String(), nil)
+	req, err := http.NewRequest(http.MethodGet, url.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	// Send Request
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	defer resp.Body.Close()
 	// Register Response Body Decoder
 	decoder := json.NewDecoder(resp.Body)
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Kong Status Check Failed, status: %s, url: %s", resp.Status, url.String())
+		return nil, fmt.Errorf("kong status check failed, status: %s, url: %s", resp.Status, url.String())
 	}
 	// Decode Status Response
 	var statusResponse StatusResponse
 	if err := decoder.Decode(&statusResponse); err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	return &statusResponse, nil
 }

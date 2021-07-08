@@ -3,9 +3,8 @@ module github.com/ParaServices/kong
 go 1.16
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/kr/pretty v0.1.0 // indirect
+	github.com/ParaServices/errgo v0.9.0
+	github.com/ParaServices/paratils v0.30.0
 	github.com/magicalbanana/tg v0.1.0
 	github.com/stretchr/testify v1.7.0
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 )

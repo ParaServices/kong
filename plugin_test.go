@@ -3,25 +3,29 @@ package kong
 import (
 	"testing"
 
-	"github.com/ParaServices/kong/plugins"
+	"github.com/ParaServices/kong/object"
+	"github.com/ParaServices/kong/plugin"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_EnablePlugin(t *testing.T) {
-	client := NewClient(1, 1, kongURL(t))
+	client, err := NewClient(kongURL(t))
+	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
 		t.Run("config not given", func(t *testing.T) {
-			plugins := []string{
+			plugin := []string{
 				"cors",
 				"jwt",
 			}
 
-			for i := range plugins {
+			for i := range plugin {
 				service := generateService(t)
-				plugin := &Plugin{
-					Name: plugins[i],
-					Service: &PluginService{
+				plugin := &object.Plugin{
+					Name: object.Name{
+						Name: plugin[i],
+					},
+					Service: &object.KongID{
 						ID: service.ID,
 					},
 				}
@@ -35,18 +39,21 @@ func TestClient_EnablePlugin(t *testing.T) {
 				"localhost",
 				"test.com",
 			}
-			config := &plugins.CORSConfig{
+			config := &plugin.CORSConfig{
 				Origins: origins,
 			}
 			service := generateService(t)
-			plugin := &Plugin{
-				Name: "cors",
-				Service: &PluginService{
+			plugin := &object.Plugin{
+				Name: object.Name{
+					Name: "cors",
+				},
+				Service: &object.KongID{
 					ID: service.ID,
 				},
-				Config: config,
 			}
-			plugin, err := client.EnablePlugin(plugin)
+			err := plugin.MarshalConfig(config)
+			require.NoError(t, err)
+			plugin, err = client.EnablePlugin(plugin)
 			require.NoError(t, err)
 			require.Equal(t, origins, config.Origins)
 		})

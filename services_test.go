@@ -4,19 +4,23 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/ParaServices/kong/object"
 	"github.com/magicalbanana/tg"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_AddService(t *testing.T) {
-	client := NewClient(1, 1, kongURL(t))
+	client, err := NewClient(kongURL(t))
+	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
 		t.Run("default values for attributes", func(t *testing.T) {
 			svcName, err := tg.RandGen(20, tg.LowerUpper, "", "")
 			require.NoError(t, err)
-			svc := &Service{
-				Name: svcName,
+			svc := &object.Service{
+				Name: object.Name{
+					Name: svcName,
+				},
 				Host: "service.com",
 			}
 
@@ -31,8 +35,10 @@ func TestClient_AddService(t *testing.T) {
 		t.Run("defined values", func(t *testing.T) {
 			svcName, err := tg.RandGen(20, tg.LowerUpper, "", "")
 			require.NoError(t, err)
-			svc := &Service{
-				Name:           svcName,
+			svc := &object.Service{
+				Name: object.Name{
+					Name: svcName,
+				},
 				Protocol:       "https",
 				Host:           "service.com",
 				Port:           9999,
@@ -63,8 +69,10 @@ func TestClient_AddService(t *testing.T) {
 		t.Run("unique constraint violation", func(t *testing.T) {
 			svcName, err := tg.RandGen(20, tg.LowerUpper, "", "")
 			require.NoError(t, err)
-			svc := &Service{
-				Name: svcName,
+			svc := &object.Service{
+				Name: object.Name{
+					Name: svcName,
+				},
 				Host: "service.com",
 			}
 
@@ -87,14 +95,17 @@ func TestClient_AddService(t *testing.T) {
 }
 
 func TestClient_UpdateService(t *testing.T) {
-	client := NewClient(1, 1, kongURL(t))
+	client, err := NewClient(kongURL(t))
+	require.NoError(t, err)
 
 	t.Run("success", func(t *testing.T) {
 		t.Run("new values for attributes", func(t *testing.T) {
 			svcName, err := tg.RandGen(20, tg.LowerUpper, "", "")
 			require.NoError(t, err)
-			svc := &Service{
-				Name: svcName,
+			svc := &object.Service{
+				Name: object.Name{
+					Name: svcName,
+				},
 				Host: "service.com",
 			}
 
@@ -107,7 +118,7 @@ func TestClient_UpdateService(t *testing.T) {
 
 			svcNameUpdate, err := tg.RandGen(20, tg.LowerUpper, "", "")
 			require.NoError(t, err)
-			svcResp.Name = svcNameUpdate
+			svcResp.SetName(svcNameUpdate)
 			newHost := "newhost.com"
 			svcResp.Host = newHost
 
@@ -115,7 +126,7 @@ func TestClient_UpdateService(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, svcResp)
 			require.NotEmpty(t, svcRespUpdate.ID)
-			require.Equal(t, svcNameUpdate, svcRespUpdate.Name)
+			require.Equal(t, svcNameUpdate, svcRespUpdate.GetName())
 			require.Equal(t, newHost, svcRespUpdate.Host)
 		})
 	})

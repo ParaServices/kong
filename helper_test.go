@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/ParaServices/kong/object"
 	"github.com/magicalbanana/tg"
 	"github.com/stretchr/testify/require"
 )
@@ -21,14 +22,17 @@ func kongURL(t *testing.T) *url.URL {
 	return u
 }
 
-func generateService(t *testing.T) *Service {
-	client := NewClient(1, 15, kongURL(t))
+func generateService(t *testing.T) *object.Service {
+	client, err := NewClient(kongURL(t))
+	require.NoError(t, err)
 	svcName, err := tg.RandGen(20, tg.LowerUpper, "", "")
 	require.NoError(t, err)
 	svcHost, err := tg.RandGen(10, tg.Lower, "", "")
 	require.NoError(t, err)
-	svc := &Service{
-		Name: svcName,
+	svc := &object.Service{
+		Name: object.Name{
+			Name: svcName,
+		},
 		Host: fmt.Sprintf("%s.com", svcHost),
 	}
 

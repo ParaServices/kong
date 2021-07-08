@@ -8,52 +8,34 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+
+	"github.com/ParaServices/errgo"
+	"github.com/ParaServices/kong/object"
 )
 
-// Service ...
-type Service struct {
-	ID             string `json:"id,omitempty"`
-	Name           string `json:"name,omitempty"`
-	Protocol       string `json:"protocol,omitempty"`
-	Host           string `json:"host,omitempty"`
-	Path           string `json:"path,omitempty"`
-	Port           int    `json:"port,omitempty"`
-	Retries        int    `json:"retries,omitempty"`
-	ConnectTimeout int    `json:"connect_timeout,omitempty"`
-	WriteTimeout   int    `json:"write_timeout,omitempty"`
-	ReadTimeout    int    `json:"read_timeout,omitempty"`
-	CreatedAt      int64  `json:"created_at,omitempty"`
-	UpdatedAt      int64  `json:"updated_at,omitempty"`
-}
-
-// ServicesList ...
-type ServicesList struct {
-	Data []Service `json:"data"`
-}
-
 // AddService ...
-func (c *Client) AddService(service *Service) (*Service, error) {
+func (c *Client) AddService(getter object.ServiceGetter) (*object.Service, error) {
 	rel, err := url.Parse("services")
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
-	b, err := json.Marshal(service)
+	b, err := json.Marshal(getter)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBuffer(b))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	expCodes := expectedCodes{http.StatusCreated}
@@ -64,45 +46,43 @@ func (c *Client) AddService(service *Service) (*Service, error) {
 
 	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	response := &Service{}
+	response := &object.Service{}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	return response, nil
 }
 
 // UpdateService ...
-func (c *Client) UpdateService(service *Service) (*Service, error) {
-	if service.ID == "" {
+func (c *Client) UpdateService(getter object.ServiceGetter) (*object.Service, error) {
+	if getter.GetID() == "" {
 		return nil, errors.New("Service ID must be defined when updating a service")
 	}
-	rel, err := url.Parse(path.Join("services", service.ID))
+	rel, err := url.Parse(path.Join("services", getter.GetID()))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
-	// remove service ID from the request body
-	service.ID = ""
-	b, err := json.Marshal(service)
+	b, err := json.Marshal(getter)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	req, err := http.NewRequest(http.MethodPatch, u.String(), bytes.NewBuffer(b))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	expCodes := expectedCodes{http.StatusOK}
@@ -113,35 +93,35 @@ func (c *Client) UpdateService(service *Service) (*Service, error) {
 
 	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	response := &Service{}
+	response := &object.Service{}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	return response, nil
 }
 
 // ListServices ...
-func (c *Client) ListServices() (*ServicesList, error) {
+func (c *Client) ListServices() (object.Services, error) {
 	rel, err := url.Parse("services")
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	expCodes := expectedCodes{http.StatusOK}
 	if !expCodes.codeMatched(resp.StatusCode) {
@@ -152,34 +132,40 @@ func (c *Client) ListServices() (*ServicesList, error) {
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
-	response := &ServicesList{}
+	response := &struct {
+		Data object.Services `json:"data,omitempty"`
+	}{}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	return response, nil
+	if response.Data.GetLength() < 1 {
+		return nil, nil
+	}
+
+	return response.Data, nil
 }
 
 // RetrieveService ...
-func (c *Client) RetrieveService(nameOrID string) (*Service, error) {
-	rel, err := url.Parse(path.Join("services", nameOrID))
+func (c *Client) RetrieveService(getter object.KongIDGetter) (*object.Service, error) {
+	rel, err := url.Parse(path.Join("services", getter.GetID()))
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	u := c.BaseURL.ResolveReference(rel)
+	u := c.baseURL.ResolveReference(rel)
 
 	req, err := http.NewRequest(http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	resp, err := c.doRequest(req)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 	expCodes := expectedCodes{http.StatusOK, http.StatusNotFound}
 	if !expCodes.codeMatched(resp.StatusCode) {
@@ -193,13 +179,13 @@ func (c *Client) RetrieveService(nameOrID string) (*Service, error) {
 
 	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
-	response := &Service{}
+	response := &object.Service{}
 	err = json.Unmarshal(b, &response)
 	if err != nil {
-		return nil, err
+		return nil, errgo.New(err)
 	}
 
 	return response, nil
