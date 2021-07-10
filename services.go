@@ -3,7 +3,6 @@ package kong
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -11,10 +10,14 @@ import (
 
 	"github.com/ParaServices/errgo"
 	"github.com/ParaServices/kong/object"
+	"github.com/ParaServices/paratils"
 )
 
 // AddService ...
 func (c *Client) AddService(getter object.ServiceGetter) (*object.Service, error) {
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("service is nil")
+	}
 	rel, err := url.Parse("services")
 	if err != nil {
 		return nil, errgo.New(err)
@@ -60,8 +63,11 @@ func (c *Client) AddService(getter object.ServiceGetter) (*object.Service, error
 
 // UpdateService ...
 func (c *Client) UpdateService(getter object.ServiceGetter) (*object.Service, error) {
-	if getter.GetID() == "" {
-		return nil, errors.New("Service ID must be defined when updating a service")
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("service is nil")
+	}
+	if paratils.StringIsEmpty(getter.GetID()) {
+		return nil, errgo.NewF("service ID is empty")
 	}
 	rel, err := url.Parse(path.Join("services", getter.GetID()))
 	if err != nil {
@@ -151,6 +157,12 @@ func (c *Client) ListServices() (object.Services, error) {
 
 // RetrieveService ...
 func (c *Client) RetrieveService(getter object.KongIDGetter) (*object.Service, error) {
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("service is nil")
+	}
+	if paratils.StringIsEmpty(getter.GetID()) {
+		return nil, errgo.NewF("service ID is empty")
+	}
 	rel, err := url.Parse(path.Join("services", getter.GetID()))
 	if err != nil {
 		return nil, errgo.New(err)

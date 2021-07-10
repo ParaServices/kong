@@ -18,6 +18,12 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 	if paratils.IsNil(getter) {
 		return nil, errgo.NewF("jwt credential is nil")
 	}
+	if paratils.StringIsEmpty(getter.GetConsumer().GetID()) {
+		return nil, errgo.NewF("consumer ID is empty")
+	}
+	if paratils.StringIsEmpty(getter.GetKey()) {
+		return nil, errgo.NewF("key is empty")
+	}
 	form := url.Values{}
 	form.Add("key", getter.GetKey())
 	form.Add("secret", getter.GetSecret())
@@ -61,6 +67,12 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 
 // DeleteJWTCredential ...
 func (c *Client) DeleteJWTCredential(getter plugin.JWTCredentialGetter) error {
+	if paratils.IsNil(getter) {
+		return errgo.NewF("jwt credential is nil")
+	}
+	if paratils.StringIsEmpty(getter.GetConsumer().GetID()) {
+		return errgo.NewF("consumer ID is empty")
+	}
 	rel, err := url.Parse(path.Join("consumers", getter.GetConsumer().GetID(), "jwt", getter.GetID()))
 	if err != nil {
 		return errgo.New(err)
