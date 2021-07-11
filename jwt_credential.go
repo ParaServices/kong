@@ -13,7 +13,8 @@ import (
 	"github.com/ParaServices/paratils"
 )
 
-// CreateJWTCredential ...
+// CreateJWTCredential makes a request to kong's admin API to createa JWT
+// credential from the given getter.
 func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin.JWTCredential, error) {
 	if paratils.IsNil(getter) {
 		return nil, errgo.NewF("jwt credential is nil")
@@ -57,7 +58,14 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 		return nil, errgo.New(err)
 	}
 
+	// marshal so that the given getter's consumer is carried over. This
+	// means that since we have omitempty on the JSON tags for the
+	// consumer fields, if it's not returned by the server, the marshaled
+	// fields will remain the same.
 	jwtCred := &plugin.JWTCredential{}
+	if err := plugin.MarshalJWTCredential(getter, jwtCred); err != nil {
+		return nil, errgo.New(err)
+	}
 	err = json.Unmarshal(b, &jwtCred)
 	if err != nil {
 		return nil, errgo.New(err)

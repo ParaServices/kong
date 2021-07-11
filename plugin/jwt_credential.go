@@ -37,6 +37,13 @@ func NewJWTCredential(getter object.ConsumerGetter, setterFuncs ...JWTCredential
 		return nil, errgo.NewF("consumer is nil")
 	}
 
+	if paratils.StringIsEmpty(getter.GetCustomID()) {
+		return nil, errgo.NewF("custom ID is empty")
+	}
+	if paratils.StringIsEmpty(getter.GetUsername()) {
+		return nil, errgo.NewF("username is empty")
+	}
+
 	consumer := object.Consumer{}
 	if err := object.MarshalConsumer(getter, &consumer); err != nil {
 		return nil, errgo.New(err)
