@@ -1,12 +1,12 @@
 package kong
 
 import (
+	"bytes"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
-	"strings"
 
 	"github.com/ParaServices/errgo"
 	"github.com/ParaServices/kong/plugin"
@@ -25,9 +25,6 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 	if paratils.StringIsEmpty(getter.GetKey()) {
 		return nil, errgo.NewF("key is empty")
 	}
-	form := url.Values{}
-	form.Add("key", getter.GetKey())
-	form.Add("secret", getter.GetSecret())
 
 	rel, err := url.Parse(path.Join("consumers", getter.GetConsumer().GetID(), "jwt"))
 	if err != nil {
@@ -36,11 +33,16 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 
 	u := c.baseURL.ResolveReference(rel)
 
-	req, err := http.NewRequest(http.MethodPost, u.String(), strings.NewReader(form.Encode()))
+	b, err := json.Marshal(getter)
 	if err != nil {
 		return nil, errgo.New(err)
 	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(b))
+	if err != nil {
+		return nil, errgo.New(err)
+	}
+	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
@@ -53,7 +55,7 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 	}
 
 	defer resp.Body.Close()
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errgo.New(err)
 	}
@@ -92,6 +94,7 @@ func (c *Client) DeleteJWTCredential(getter plugin.JWTCredentialGetter) error {
 	if err != nil {
 		return errgo.New(err)
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {

@@ -10,10 +10,14 @@ import (
 
 	"github.com/ParaServices/errgo"
 	"github.com/ParaServices/kong/object"
+	"github.com/ParaServices/paratils"
 )
 
 // EnablePlugin ...
 func (c *Client) EnablePlugin(getter object.PluginGetter) (*object.Plugin, error) {
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("plugin is nil")
+	}
 	rel, err := url.Parse("plugins")
 	if err != nil {
 		return nil, errgo.New(err)
@@ -76,6 +80,7 @@ func (c *Client) ListPluginsForService(serviceID string) (*PluginList, error) {
 	if err != nil {
 		return nil, errgo.New(err)
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {

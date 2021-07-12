@@ -23,9 +23,6 @@ func (c *Client) CreateConsumer(getter object.ConsumerGetter) (*object.Consumer,
 	if paratils.StringIsEmpty(customID) && paratils.StringIsEmpty(username) {
 		return nil, errgo.NewF("custom ID and username is empty")
 	}
-	form := url.Values{}
-	form.Add("custom_id", customID)
-	form.Add("username", username)
 
 	rel, err := url.Parse("consumers")
 	if err != nil {
@@ -34,11 +31,15 @@ func (c *Client) CreateConsumer(getter object.ConsumerGetter) (*object.Consumer,
 
 	u := c.baseURL.ResolveReference(rel)
 
-	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewBufferString(form.Encode()))
+	b, err := json.Marshal(getter)
 	if err != nil {
 		return nil, errgo.New(err)
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req, err := http.NewRequest(http.MethodPost, u.String(), bytes.NewReader(b))
+	if err != nil {
+		return nil, errgo.New(err)
+	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
@@ -51,7 +52,7 @@ func (c *Client) CreateConsumer(getter object.ConsumerGetter) (*object.Consumer,
 		return nil, NewErrKongResponse(expCodes, resp)
 	}
 
-	b, err := ioutil.ReadAll(resp.Body)
+	b, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, errgo.New(err)
 	}
@@ -68,6 +69,9 @@ func (c *Client) CreateConsumer(getter object.ConsumerGetter) (*object.Consumer,
 // Delete Consumer requires usernameOrCustomID or ID to delete consumer via Kong API
 // https://docs.konghq.com/0.14.x/admin-api/#delete-consumer
 func (c *Client) DeleteConsumer(getter object.ConsumerGetter) error {
+	if paratils.IsNil(getter) {
+		return errgo.NewF("consumer is nil")
+	}
 	rel, err := url.Parse(path.Join("consumers", getter.GetCustomID()))
 	if err != nil {
 		return errgo.New(err)
@@ -78,7 +82,7 @@ func (c *Client) DeleteConsumer(getter object.ConsumerGetter) error {
 	if err != nil {
 		return errgo.New(err)
 	}
-	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Type", "application/json")
 	resp, err := c.doRequest(req)
 	if err != nil {
 		return errgo.New(err)

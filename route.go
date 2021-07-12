@@ -10,10 +10,14 @@ import (
 
 	"github.com/ParaServices/errgo"
 	"github.com/ParaServices/kong/object"
+	"github.com/ParaServices/paratils"
 )
 
 // AddRoute ...
 func (c *Client) AddRoute(getter object.RouteGetter) (*object.Route, error) {
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("route is nil")
+	}
 	rel, err := url.Parse("routes")
 	if err != nil {
 		return nil, errgo.New(err)
@@ -59,6 +63,9 @@ func (c *Client) AddRoute(getter object.RouteGetter) (*object.Route, error) {
 
 // ListRoutesForService ...
 func (c *Client) ListRoutesForService(getter object.KongIDGetter) (object.Routes, error) {
+	if paratils.IsNil(getter) {
+		return nil, errgo.NewF("route is nil")
+	}
 	rel, err := url.Parse(path.Join("services", getter.GetID(), "routes"))
 	if err != nil {
 		return nil, errgo.New(err)
@@ -70,6 +77,7 @@ func (c *Client) ListRoutesForService(getter object.KongIDGetter) (object.Routes
 	if err != nil {
 		return nil, errgo.New(err)
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
@@ -104,6 +112,9 @@ func (c *Client) ListRoutesForService(getter object.KongIDGetter) (object.Routes
 
 // DeleteRoute ...
 func (c *Client) DeleteRoute(getter object.KongIDGetter) error {
+	if paratils.IsNil(getter) {
+		return errgo.NewF("route is nil")
+	}
 	rel, err := url.Parse(path.Join("routes", getter.GetID()))
 	if err != nil {
 		return err
@@ -115,6 +126,7 @@ func (c *Client) DeleteRoute(getter object.KongIDGetter) error {
 	if err != nil {
 		return err
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {

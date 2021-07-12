@@ -35,7 +35,7 @@ func userAgent() string {
 	var b strings.Builder
 	defer b.Reset()
 
-	fmt.Fprintf(&b, "kong-client/%s ", libraryVersion)
+	fmt.Fprintf(&b, "go-client/%s ", libraryVersion)
 	fmt.Fprintf(&b, "(%s; %s) ", runtime.GOOS, runtime.GOARCH)
 	fmt.Fprintf(&b, "%s", runtime.Version())
 

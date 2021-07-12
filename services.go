@@ -124,6 +124,7 @@ func (c *Client) ListServices() (object.Services, error) {
 	if err != nil {
 		return nil, errgo.New(err)
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {
@@ -158,7 +159,7 @@ func (c *Client) ListServices() (object.Services, error) {
 // RetrieveService ...
 func (c *Client) RetrieveService(getter object.KongIDGetter) (*object.Service, error) {
 	if paratils.IsNil(getter) {
-		return nil, errgo.NewF("service is nil")
+		return nil, errgo.NewF("service ID is nil")
 	}
 	if paratils.StringIsEmpty(getter.GetID()) {
 		return nil, errgo.NewF("service ID is empty")
@@ -174,6 +175,7 @@ func (c *Client) RetrieveService(getter object.KongIDGetter) (*object.Service, e
 	if err != nil {
 		return nil, errgo.New(err)
 	}
+	req.Header.Add("Content-Type", "application/json")
 
 	resp, err := c.doRequest(req)
 	if err != nil {

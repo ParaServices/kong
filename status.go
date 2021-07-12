@@ -38,6 +38,8 @@ func (c *Client) GetStatus() (*StatusResponse, error) {
 	if err != nil {
 		return nil, errgo.New(err)
 	}
+	req.Header.Add("Content-Type", "application/json")
+
 	// Send Request
 	resp, err := c.doRequest(req)
 	if err != nil {
