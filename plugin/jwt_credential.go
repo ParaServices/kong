@@ -6,54 +6,16 @@ import (
 	"github.com/ParaServices/paratils"
 )
 
-type JWTCredentialSetterFunc func(setter JWTCredentialSetter) error
-
-func SetJWTCredentialKey(key string) JWTCredentialSetterFunc {
-	return func(setter JWTCredentialSetter) error {
-		return setter.SetKey(key)
-	}
-}
-
-func SetJWTCredentialSecret(secret string) JWTCredentialSetterFunc {
-	return func(setter JWTCredentialSetter) error {
-		return setter.SetSecret(secret)
-	}
-}
-
-func SetJWTCredentialRSAPublicKey(rsapublickey string) JWTCredentialSetterFunc {
-	return func(setter JWTCredentialSetter) error {
-		return setter.SetRSAPublicKey(rsapublickey)
-	}
-}
-
-func SetJWTCredentialAlgorithm(algorithm string) JWTCredentialSetterFunc {
-	return func(setter JWTCredentialSetter) error {
-		return setter.SetAlgorithm(algorithm)
-	}
-}
-
-func NewJWTCredential(getter object.ConsumerGetter, setterFuncs ...JWTCredentialSetterFunc) (*JWTCredential, error) {
-	if paratils.IsNil(getter) {
-		return nil, errgo.NewF("consumer is nil")
-	}
-
-	if paratils.StringIsEmpty(getter.GetCustomID()) {
-		return nil, errgo.NewF("custom ID is empty")
-	}
-	if paratils.StringIsEmpty(getter.GetUsername()) {
-		return nil, errgo.NewF("username is empty")
-	}
-
-	consumer := object.Consumer{}
-	if err := object.MarshalConsumer(getter, &consumer); err != nil {
-		return nil, errgo.New(err)
-	}
-
-	jwtCred := &JWTCredential{
-		Consumer: &consumer,
-	}
-	for i := range setterFuncs {
-		if err := setterFuncs[i](jwtCred); err != nil {
+// NewJWTCredential ...
+func NewJWTCredential(
+	mutatorFuncs ...JWTCredentialMutatorFunc,
+) (
+	*JWTCredential,
+	error,
+) {
+	jwtCred := &JWTCredential{}
+	for i := range mutatorFuncs {
+		if err := mutatorFuncs[i](jwtCred); err != nil {
 			return nil, errgo.New(err)
 		}
 
@@ -62,37 +24,56 @@ func NewJWTCredential(getter object.ConsumerGetter, setterFuncs ...JWTCredential
 	return jwtCred, nil
 }
 
+// JWTCredential ...
 type JWTCredential struct {
 	object.KongID
 	object.Tags
 	object.CreatedAt
 	Consumer     *object.Consumer `json:"consumer,omitempty"`
 	Key          string           `json:"key,omitempty"`
-	Secret       string           `json:"secret,omptempty"`
+	Secret       string           `json:"secret,omitempty"`
 	RSAPublicKey string           `json:"rsa_public_key,omitempty"`
 	Algorithm    string           `json:"algorithm,omitempty"`
 }
 
+// GetConsumer ...
 func (j *JWTCredential) GetConsumer() object.ConsumerAccessor {
 	return j.Consumer
 }
 
+// HasConsumer ...
+func (j *JWTCredential) HasConsumer() bool {
+	return !paratils.IsNil(j.GetConsumer())
+}
+
+// HasConsumerID determines if the given JWTCredential has a consumer with a
+// value to the ConsumerID. This determines the validaity of JWTCredential
+// when creatinga consumer in the Kong API.
+func (j *JWTCredential) HasConsumerID() bool {
+	return j.HasConsumer() && j.GetConsumer().HasID()
+}
+
+// GetKey ...
 func (j *JWTCredential) GetKey() string {
 	return j.Key
 }
 
+// GetSecret ...
 func (j *JWTCredential) GetSecret() string {
 	return j.Secret
 }
 
+// GetRSAPublicKey ...
 func (j *JWTCredential) GetRSAPublicKey() string {
 	return j.RSAPublicKey
 }
 
+// GetAlgorithm ...
 func (j *JWTCredential) GetAlgorithm() string {
 	return j.Algorithm
 }
 
+// SetConsumer ...
 func (j *JWTCredential) SetConsumer(getter object.ConsumerGetter) error {
 	if paratils.IsNil(getter) {
 		return nil
@@ -101,9 +82,27 @@ func (j *JWTCredential) SetConsumer(getter object.ConsumerGetter) error {
 		j.Consumer = &object.Consumer{}
 	}
 
-	return object.MarshalConsumer(getter, j.Consumer)
+	return object.CopyConsumer(getter, j.Consumer)
 }
 
+// SetNewConsumer ...
+func (j *JWTCredential) SetNewConsumer(
+	newFn object.NewConsumerFunc,
+	mutatorFuncs ...object.ConsumerMutatorFunc,
+) error {
+	if paratils.IsNil(newFn) || len(mutatorFuncs) == 0 {
+		return nil
+	}
+
+	consumer, err := newFn(mutatorFuncs...)
+	if err != nil {
+		return errgo.New(err)
+	}
+
+	return j.SetConsumer(consumer)
+}
+
+// SetKey ...
 func (j *JWTCredential) SetKey(key string) error {
 	j.Key = key
 	return nil
@@ -130,6 +129,8 @@ type JWTCredentialGetter interface {
 	object.TagsGetter
 	object.CreatedAtGetter
 	GetConsumer() object.ConsumerAccessor
+	HasConsumer() bool
+	HasConsumerID() bool
 	GetAlgorithm() string
 	GetKey() string
 	GetRSAPublicKey() string
@@ -141,6 +142,10 @@ type JWTCredentialSetter interface {
 	object.TagsSetter
 	object.CreatedAtSetter
 	SetConsumer(getter object.ConsumerGetter) error
+	SetNewConsumer(
+		newFn object.NewConsumerFunc,
+		mutatorFuncs ...object.ConsumerMutatorFunc,
+	) error
 	SetAlgorithm(algorithm string) error
 	SetKey(key string) error
 	SetRSAPublicKey(rsaPublicKey string) error
@@ -152,18 +157,22 @@ type JWTCredentialAccessor interface {
 	JWTCredentialSetter
 }
 
-func MarshalJWTCredential(getter JWTCredentialGetter, setter JWTCredentialSetter) error {
+// CopyJWTCredential ...
+func CopyJWTCredential(
+	getter JWTCredentialGetter,
+	setter JWTCredentialSetter,
+) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}
 
-	if err := object.MarshalKongID(getter, setter); err != nil {
+	if err := object.CopyKongID(getter, setter); err != nil {
 		return errgo.New(err)
 	}
-	if err := object.MarshalCreatedAt(getter, setter); err != nil {
+	if err := object.CopyCreatedAt(getter, setter); err != nil {
 		return errgo.New(err)
 	}
-	if err := object.MarshalTags(getter, setter); err != nil {
+	if err := object.CopyTags(getter, setter); err != nil {
 		return errgo.New(err)
 	}
 	if err := setter.SetConsumer(getter.GetConsumer()); err != nil {

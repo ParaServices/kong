@@ -11,7 +11,7 @@ services:
       - postgres:/var/lib/postgresql/data
 
   kong-migration:
-    image: kong:2.3.3-alpine
+    image: kong:2.6.0-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres
@@ -21,7 +21,7 @@ services:
     command: kong migrations bootstrap
 
   kong:
-    image: kong:2.3.3-alpine
+    image: kong:2.6.0-alpine
     environment:
       KONG_DATABASE: postgres
       KONG_PG_HOST: postgres

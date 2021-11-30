@@ -19,7 +19,11 @@ func TestClient_CreateJWTCredential(t *testing.T) {
 		require.NoError(t, err)
 		customID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
-		consumer := object.NewConsumer(username, customID)
+		consumer, err := object.NewConsumer(
+			object.SetConsumerCustomID(customID),
+			object.SetConsumerUsername(username),
+		)
+		require.NoError(t, err)
 		createdConsumer, err := client.CreateConsumer(consumer)
 		require.NoError(t, err)
 		require.NotNil(t, createdConsumer)
@@ -30,7 +34,9 @@ func TestClient_CreateJWTCredential(t *testing.T) {
 		require.NoError(t, err)
 
 		jwtCred, err := plugin.NewJWTCredential(
-			createdConsumer,
+			plugin.SetJWTCredentialConsumer(
+				createdConsumer,
+			),
 			plugin.SetJWTCredentialKey(key),
 			plugin.SetJWTCredentialSecret(secret),
 		)
@@ -50,21 +56,18 @@ func TestClient_CreateJWTCredential(t *testing.T) {
 		require.Equal(t, createdConsumer.GetCreatedAt(), resp.GetConsumer().GetCreatedAt())
 		require.NotEmpty(t, resp.ID)
 	})
-}
 
-func TestClient_CreateJWTCredential_CustomerDoesNotExist(t *testing.T) {
 	t.Run("consumer does not exist", func(t *testing.T) {
 		client, err := NewClient(kongURL(t))
 		require.NoError(t, err)
 
 		jwtCred, err := plugin.NewJWTCredential(
-			&object.Consumer{
-				KongID: object.KongID{
-					ID: "1",
-				},
-				CustomID: "1",
-				Username: "a",
-			},
+			plugin.SetJWTCredentialNewConsumer(
+				object.NewConsumer,
+				object.SetConsumerID("1"),
+				object.SetConsumerCustomID("1"),
+				object.SetConsumerUsername("a"),
+			),
 			plugin.SetJWTCredentialKey("key"),
 			plugin.SetJWTCredentialSecret("secret"),
 		)
@@ -87,7 +90,11 @@ func TestClient_DeleteJWTCredential(t *testing.T) {
 		require.NoError(t, err)
 		customID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
-		consumer := object.NewConsumer(username, customID)
+		consumer, err := object.NewConsumer(
+			object.SetConsumerUsername(username),
+			object.SetConsumerCustomID(customID),
+		)
+		require.NoError(t, err)
 		createdConsumer, err := client.CreateConsumer(consumer)
 		require.NoError(t, err)
 		require.NotNil(t, createdConsumer)
@@ -98,7 +105,9 @@ func TestClient_DeleteJWTCredential(t *testing.T) {
 		require.NoError(t, err)
 
 		jwtCred, err := plugin.NewJWTCredential(
-			createdConsumer,
+			plugin.SetJWTCredentialConsumer(
+				createdConsumer,
+			),
 			plugin.SetJWTCredentialKey(key),
 			plugin.SetJWTCredentialSecret(secret),
 		)

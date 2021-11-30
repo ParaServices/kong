@@ -17,7 +17,11 @@ func TestClient_CreateConsumer(t *testing.T) {
 
 		consumerID, err := tg.RandGen(10, tg.Digit, "", "")
 		require.NoError(t, err)
-		newConsumer := object.NewConsumer(consumerID, consumerID)
+		newConsumer, err := object.NewConsumer(
+			object.SetConsumerUsername(consumerID),
+			object.SetConsumerCustomID(consumerID),
+		)
+		require.NoError(t, err)
 		resp, err := client.CreateConsumer(newConsumer)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -33,7 +37,11 @@ func TestClient_CreateConsumer(t *testing.T) {
 				require.NoError(t, err)
 				username, err := tg.RandGen(20, tg.LowerUpper, "", "")
 				require.NoError(t, err)
-				newConsumer := object.NewConsumer(username, consumerID)
+				newConsumer, err := object.NewConsumer(
+					object.SetConsumerUsername(username),
+					object.SetConsumerCustomID(consumerID),
+				)
+				require.NoError(t, err)
 				createdConsumer, err := client.CreateConsumer(newConsumer)
 				require.NoError(t, err)
 				require.NotNil(t, createdConsumer)
@@ -50,7 +58,10 @@ func TestClient_CreateConsumer(t *testing.T) {
 
 		consumerID, err := tg.RandGen(20, tg.Digit, "", "")
 		require.NoError(t, err)
-		newConsumer := object.NewConsumer(consumerID, consumerID)
+		newConsumer, err := object.NewConsumer(
+			object.SetConsumerUsername(consumerID),
+			object.SetConsumerCustomID(consumerID),
+		)
 		resp, err := client.CreateConsumer(newConsumer)
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -72,7 +83,11 @@ func TestClient_DeleteConsumer(t *testing.T) {
 		require.NoError(t, err)
 		username, err := tg.RandGen(32, tg.LowerUpper, "", "")
 		require.NoError(t, err)
-		consumer := object.NewConsumer(username, customID)
+		consumer, err := object.NewConsumer(
+			object.SetConsumerUsername(username),
+			object.SetConsumerCustomID(customID),
+		)
+		require.NoError(t, err)
 		createdConsumer, err := client.CreateConsumer(consumer)
 		require.NoError(t, err)
 		require.NotNil(t, createdConsumer)
@@ -91,7 +106,11 @@ func TestClient_DeleteConsumer(t *testing.T) {
 		require.NoError(t, err)
 		username, err := tg.RandGen(32, tg.LowerUpper, "", "")
 		require.NoError(t, err)
-		consumer := object.NewConsumer(username, customID)
+		consumer, err := object.NewConsumer(
+			object.SetConsumerUsername(username),
+			object.SetConsumerCustomID(customID),
+		)
+		require.NoError(t, err)
 
 		err = client.DeleteConsumer(consumer)
 		require.NoError(t, err)

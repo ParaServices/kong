@@ -11,7 +11,7 @@ import (
 // PluginConfig is an interface that needs to be implemented if configuration
 // for the given plugin is needed.
 type PluginConfig interface {
-	Marshal() ([]byte, error)
+	MarshalToBytes() ([]byte, error)
 }
 
 // Plugin ...
@@ -24,23 +24,23 @@ type Plugin struct {
 	Config   *json.RawMessage `json:"config,omitempty"`
 }
 
-func (p *Plugin) GetService() KongIDAccessor {
+func (p Plugin) GetService() KongIDAccessor {
 	return p.Service
 }
 
-func (p *Plugin) GetRoute() KongIDAccessor {
+func (p Plugin) GetRoute() KongIDAccessor {
 	return p.Route
 }
 
-func (p *Plugin) GetConsumer() KongIDAccessor {
+func (p Plugin) GetConsumer() KongIDAccessor {
 	return p.Consumer
 }
 
-func (p *Plugin) GetEnabled() *bool {
+func (p Plugin) GetEnabled() *bool {
 	return p.Enabled
 }
 
-func (p *Plugin) IsEnabled() bool {
+func (p Plugin) IsEnabled() bool {
 	return *p.Enabled
 }
 
@@ -56,7 +56,7 @@ func (p *Plugin) SetService(getter KongIDGetter) error {
 		p.Service = &KongID{}
 	}
 
-	return MarshalKongID(getter, p.Service)
+	return CopyKongID(getter, p.Service)
 }
 
 func (p *Plugin) SetRoute(getter KongIDGetter) error {
@@ -67,7 +67,7 @@ func (p *Plugin) SetRoute(getter KongIDGetter) error {
 		p.Route = &KongID{}
 	}
 
-	return MarshalKongID(getter, p.Route)
+	return CopyKongID(getter, p.Route)
 }
 
 func (p *Plugin) SetConsumer(getter KongIDGetter) error {
@@ -78,7 +78,7 @@ func (p *Plugin) SetConsumer(getter KongIDGetter) error {
 		p.Consumer = &KongID{}
 	}
 
-	return MarshalKongID(getter, p.Consumer)
+	return CopyKongID(getter, p.Consumer)
 }
 
 func (p *Plugin) SetEnabled(enabled *bool) error {
@@ -91,7 +91,7 @@ func (p *Plugin) SetConfig(config *json.RawMessage) error {
 	return nil
 }
 
-func (p *Plugin) MarshalConfig(v interface{}) error {
+func (p *Plugin) CopyConfig(v interface{}) error {
 	b, err := json.Marshal(v)
 	if err != nil {
 		return errgo.New(err)
@@ -114,7 +114,7 @@ type PluginGetter interface {
 type PluginSetter interface {
 	NameSetter
 	SetConfig(config *json.RawMessage) error
-	MarshalConfig(v interface{}) error
+	CopyConfig(v interface{}) error
 	SetConsumer(getter KongIDGetter) error
 	SetEnabled(enabled *bool) error
 	SetRoute(getter KongIDGetter) error
@@ -126,7 +126,7 @@ type PluginAccessor interface {
 	PluginSetter
 }
 
-func MarshalPlugin(getter PluginGetter, setter PluginSetter) error {
+func CopyPlugin(getter PluginGetter, setter PluginSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}

@@ -21,7 +21,7 @@ func TestClient_EnablePlugin(t *testing.T) {
 
 			for i := range plugin {
 				service := generateService(t)
-				plugin := &object.Plugin{
+				enabledPlugin := &object.Plugin{
 					Name: object.Name{
 						Name: plugin[i],
 					},
@@ -29,8 +29,9 @@ func TestClient_EnablePlugin(t *testing.T) {
 						ID: service.ID,
 					},
 				}
-				plugin, err := client.EnablePlugin(plugin)
+				enabledPlugin, err := client.EnablePlugin(enabledPlugin)
 				require.NoError(t, err)
+				require.NotNil(t, enabledPlugin)
 			}
 		})
 
@@ -51,7 +52,7 @@ func TestClient_EnablePlugin(t *testing.T) {
 					ID: service.ID,
 				},
 			}
-			err := plugin.MarshalConfig(config)
+			err := plugin.CopyConfig(config)
 			require.NoError(t, err)
 			plugin, err = client.EnablePlugin(plugin)
 			require.NoError(t, err)

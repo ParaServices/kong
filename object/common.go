@@ -4,18 +4,24 @@ import (
 	"github.com/ParaServices/paratils"
 )
 
+// NewKongID ...
 func NewKongID(id string) *KongID {
 	return &KongID{
 		ID: id,
 	}
 }
 
+// KongID ...
 type KongID struct {
 	ID string `json:"id,omitempty"`
 }
 
-func (k *KongID) GetID() string {
+func (k KongID) GetID() string {
 	return k.ID
+}
+
+func (k KongID) HasID() bool {
+	return k.GetID() != ""
 }
 
 func (k *KongID) SetID(id string) error {
@@ -27,6 +33,7 @@ var _ KongIDAccessor = (*KongID)(nil)
 
 type KongIDGetter interface {
 	GetID() string
+	HasID() bool
 }
 
 type KongIDSetter interface {
@@ -38,7 +45,8 @@ type KongIDAccessor interface {
 	KongIDSetter
 }
 
-func MarshalKongID(getter KongIDGetter, setter KongIDSetter) error {
+// CopyKongID ...
+func CopyKongID(getter KongIDGetter, setter KongIDSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}
@@ -46,23 +54,38 @@ func MarshalKongID(getter KongIDGetter, setter KongIDSetter) error {
 	return setter.SetID(getter.GetID())
 }
 
+// Tags ...
 type Tags struct {
 	Tags []string `json:"tags,omitempty"`
 }
 
-func (t *Tags) GetTags() []string {
+// GetTags ...
+func (t Tags) GetTags() []string {
 	return t.Tags
 }
 
+// SetTags ...
 func (t *Tags) SetTags(tags ...string) error {
-	if paratils.IsNil(t.Tags) {
-		t.Tags = make([]string, 0)
-	}
 	if len(tags) < 1 {
 		return nil
 	}
+	t.Tags = make([]string, len(tags))
 
 	copy(tags, t.Tags)
+	return nil
+}
+
+// AddTags ...
+func (t *Tags) AddTags(tags ...string) error {
+	if len(tags) < 1 {
+		return nil
+	}
+	if paratils.IsNil(t.Tags) || len(t.Tags) == 0 {
+		t.Tags = make([]string, len(tags))
+		copy(tags, t.Tags)
+	} else {
+		t.Tags = append(t.Tags, tags...)
+	}
 	return nil
 }
 
@@ -74,6 +97,7 @@ type TagsGetter interface {
 
 type TagsSetter interface {
 	SetTags(tags ...string) error
+	AddTags(tags ...string) error
 }
 
 type TagsAccessor interface {
@@ -81,7 +105,8 @@ type TagsAccessor interface {
 	TagsSetter
 }
 
-func MarshalTags(getter TagsGetter, setter TagsSetter) error {
+// CopyTags ...
+func CopyTags(getter TagsGetter, setter TagsSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}
@@ -89,11 +114,12 @@ func MarshalTags(getter TagsGetter, setter TagsSetter) error {
 	return setter.SetTags(getter.GetTags()...)
 }
 
+// CreatedAt ...
 type CreatedAt struct {
 	CreatedAt int64 `json:"created_at,omitempty"`
 }
 
-func (c *CreatedAt) GetCreatedAt() int64 {
+func (c CreatedAt) GetCreatedAt() int64 {
 	return c.CreatedAt
 }
 
@@ -115,7 +141,8 @@ type CreatedAtAccessor interface {
 	CreatedAtSetter
 }
 
-func MarshalCreatedAt(getter CreatedAtGetter, setter CreatedAtSetter) error {
+// CopyCreatedAt ...
+func CopyCreatedAt(getter CreatedAtGetter, setter CreatedAtSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}
@@ -123,11 +150,12 @@ func MarshalCreatedAt(getter CreatedAtGetter, setter CreatedAtSetter) error {
 	return setter.SetCreatedAt(getter.GetCreatedAt())
 }
 
+// UpdatedAt ...
 type UpdatedAt struct {
 	UpdatedAt int64 `json:"updated_at,omitempty"`
 }
 
-func (u *UpdatedAt) GetUpdatedAt() int64 {
+func (u UpdatedAt) GetUpdatedAt() int64 {
 	return u.UpdatedAt
 }
 
@@ -149,7 +177,8 @@ type UpdatedAtAccessor interface {
 	UpdatedAtSetter
 }
 
-func MarshalUpdatedAt(getter UpdatedAtGetter, setter UpdatedAtSetter) error {
+// CopyUpdatedAt ...
+func CopyUpdatedAt(getter UpdatedAtGetter, setter UpdatedAtSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}
@@ -157,11 +186,12 @@ func MarshalUpdatedAt(getter UpdatedAtGetter, setter UpdatedAtSetter) error {
 	return setter.SetUpdatedAt(getter.GetUpdatedAt())
 }
 
+// Name ...
 type Name struct {
 	Name string `json:"name,omtiempty"`
 }
 
-func (n *Name) GetName() string {
+func (n Name) GetName() string {
 	return n.Name
 }
 
@@ -185,7 +215,8 @@ type NameAccessor interface {
 	NameSetter
 }
 
-func MarshalName(getter NameGetter, setter NameSetter) error {
+// CopyName ...
+func CopyName(getter NameGetter, setter NameSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}

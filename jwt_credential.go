@@ -19,7 +19,7 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 	if paratils.IsNil(getter) {
 		return nil, errgo.NewF("jwt credential is nil")
 	}
-	if paratils.StringIsEmpty(getter.GetConsumer().GetID()) {
+	if !getter.HasConsumerID() {
 		return nil, errgo.NewF("consumer ID is empty")
 	}
 	if paratils.StringIsEmpty(getter.GetKey()) {
@@ -60,12 +60,8 @@ func (c *Client) CreateJWTCredential(getter plugin.JWTCredentialGetter) (*plugin
 		return nil, errgo.New(err)
 	}
 
-	// marshal so that the given getter's consumer is carried over. This
-	// means that since we have omitempty on the JSON tags for the
-	// consumer fields, if it's not returned by the server, the marshaled
-	// fields will remain the same.
 	jwtCred := &plugin.JWTCredential{}
-	if err := plugin.MarshalJWTCredential(getter, jwtCred); err != nil {
+	if err := plugin.CopyJWTCredential(getter, jwtCred); err != nil {
 		return nil, errgo.New(err)
 	}
 	err = json.Unmarshal(b, &jwtCred)
@@ -80,7 +76,7 @@ func (c *Client) DeleteJWTCredential(getter plugin.JWTCredentialGetter) error {
 	if paratils.IsNil(getter) {
 		return errgo.NewF("jwt credential is nil")
 	}
-	if paratils.StringIsEmpty(getter.GetConsumer().GetID()) {
+	if !getter.HasConsumerID() {
 		return errgo.NewF("consumer ID is empty")
 	}
 	rel, err := url.Parse(path.Join("consumers", getter.GetConsumer().GetID(), "jwt", getter.GetID()))

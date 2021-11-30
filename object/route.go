@@ -48,7 +48,7 @@ func (r *Route) SetService(getter KongIDGetter) error {
 		r.Service = &KongID{}
 	}
 
-	return MarshalKongID(getter, r.Service)
+	return CopyKongID(getter, r.Service)
 }
 
 func (r *Route) SetProtocols(protocols ...string) error {
@@ -144,7 +144,8 @@ type RouteAccessor interface {
 	RouteSetter
 }
 
-func MarshalRoute(getter RouteGetter, setter RouteSetter) error {
+// CopyRoute ...
+func CopyRoute(getter RouteGetter, setter RouteSetter) error {
 	if paratils.OneIsNil(getter, setter) {
 		return nil
 	}
